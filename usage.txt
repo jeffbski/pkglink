@@ -1,0 +1,59 @@
+Usage: modshare {OPTIONS} [dir] [dirN]
+
+Description:
+
+     modshare recursively searches the directories provided for node
+     modules (in node_modules directory) with a valid package.json.
+     It uses the package name and version to match up possible
+     modules that can be shared. Once it finds like modules to share
+     it walks through the modules to check for files that can be
+     linked. If the files modified datetime and size compares and
+     the other criteria are met (like minimum size) it will create
+     a hard link for the files to save disk space. It keeps track
+     of modules that it has linked in a refs file so modshare
+     can use this to quickly locate similar modules on future runs.
+     The refs are always double checked that they haven't changed
+     before being considered for linking. This is simply a performance
+     optimization for repeat use. The refs file makes it convenient
+     to perform future runs on new directories without having to
+     reprocess the old. If the ref modules have changed they will be
+     ignored and removed from future consideration.
+
+Standard Options:
+
+ -c, --config CONFIG_PATH
+
+  This option overrides the config file path, default ~/.modshare
+
+ -d, --dryrun
+
+  Instead of performing the linking, just display the modules that
+  would be linked and the amount of disk space that would be saved.
+
+ -h, --help
+
+  Show this message
+
+ -p, --prune
+
+  Prune the refs file by checking all of the refs clearing out any
+  that have changed
+
+ -r, --refs-file REFS_FILE_PATH
+
+  Specify where to load and store the link refs file which is used to
+  quickly locate previously linked modules. Default ~/modshare_refs.json
+
+ -s, --size N
+
+  Minimum file size to link in bytes, default 0
+
+ -t, --tree-depth N
+
+  Maximum depth to search the directories specified for node modules
+  Default depth: 6
+
+ -u, --uses N
+
+  Minimum occurences of a node module (with the same version)
+  that will cause it to be considered for linking. Default: 2
