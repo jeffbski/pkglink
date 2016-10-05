@@ -22,11 +22,12 @@ const Observable = Rx.Observable;
 const isTTY = process.stdout.isTTY; // truthy if in terminal
 
 const minimistOpts = {
-  boolean: ['d', 'h', 'p'],
+  boolean: ['d', 'g', 'h', 'p'],
   string: ['c', 'r'],
   alias: {
     c: 'config',
     d: 'dryrun',
+    g: 'gen-ln-cmds',
     h: 'help',
     p: 'prune',
     r: 'refs-file',
@@ -43,7 +44,9 @@ const argvSchema = Joi.object({
   size: Joi.number().integer().min(0),
   'tree-depth': Joi.number().integer().min(0),
   uses: Joi.number().integer().min(2)
-}).unknown();
+})
+.unknown();
+
 
 const argvVResult = Joi.validate(argv, argvSchema);
 if (argvVResult.error) {
@@ -56,6 +59,9 @@ if (argvVResult.error) {
   process.exitCode = 20;
   return;
 }
+
+// should we be using terminal output
+const isTermOut = isTTY && !argv['gen-ln-cmds'];
 
 const CONFIG_PATH = argv.config || Path.resolve(process.env.HOME, '.modshare');
 const parsedConfigJson =  safeJsonReadSync(CONFIG_PATH);
@@ -140,7 +146,7 @@ const cancelled$ = new Rx.ReplaySubject();
 
 const singleLineLog$ = new Rx.Subject();
 singleLineLog$
-  .filter(x => isTTY) // only if in terminal
+  .filter(x => isTermOut) // only if in terminal
   .distinct()
   .throttleTime(10)
   .takeUntil(cancelled$)
@@ -153,13 +159,13 @@ singleLineLog$
   });
 const log = singleLineLog$.next.bind(singleLineLog$);
 log.clear = () => {
-  if (isTTY) {
+  if (isTermOut) {
     singleLineLog('');
     singleLineLog.clear();
   }
 }
 function out(str) {
-  const s = (isTTY) ? str : stripAnsi(str);
+  const s = (isTermOut) ? str : stripAnsi(str);
   process.stdout.write(s);
   process.stdout.write(OS.EOL);
 }
@@ -168,24 +174,23 @@ const cancel = once(() => {
   cancelled = true;
   cancelled$.next(true);
   console.error('cancelling and saving state...');
-  if (isTTY) { showCursor(); }
+  if (isTermOut) { showCursor(); }
 });
 const finalTasks = once(() => {
   singleLineLog$.complete();
-  if (isTTY) { showCursor(); }
-  if (argv.dryrun) {
-    out(`${chalk.yellow('would save:')} ${chalk.bold(formatBytes(savedByteCount))}`);
+  if (isTermOut) { showCursor(); }
+  if (argv.dryrun || argv['gen-ln-cmds']) {
+    out(`# ${chalk.yellow('would save:')} ${chalk.bold(formatBytes(savedByteCount))}`);
     return;
   }
   if (existingShares !== origExistingShares) {
-    const sortedExistingShares = sortObjKeys(existingShares);
+    const sortedExistingShares = sortObjKeys2Levels(existingShares);
     fs.outputJsonSync(REFS_PATH, sortedExistingShares);
     out(`updated ${REFS_PATH}`);
   }
   if (savedByteCount) {
     out(`${chalk.green('saved:')} ${chalk.bold(formatBytes(savedByteCount))}`);
   }
-  console.log('done'); // TODO remove
 });
 
 process
@@ -193,7 +198,7 @@ process
   .once('SIGTERM', cancel)
   .once('EXIT', finalTasks);
 
-if (isTTY) { hideCursor(); } // show on exit
+if (isTermOut) { hideCursor(); } // show on exit
 out(''); // advance to full line
 
 // Main program start, create task$ and run
@@ -371,6 +376,8 @@ function scanAndLink(rootDirs, options) {
           .mergeMap(
             lnkSrcDst => (options.dryrun) ?
                        determineLinks(lnkSrcDst, false) :
+                       (options['gen-ln-cmds']) ?
+                       genModuleLinks(lnkSrcDst) :
                        handleModuleLinking(lnkSrcDst),
             CONC_OPS
           )
@@ -406,11 +413,13 @@ function calcPerc(top, bottom) {
   return perc;
 }
 
-function sortObjKeys(obj) {
+function sortObjKeys2Levels(obj, sortChildren = true) {
   return Object.keys(obj)
     .sort()
     .reduce((acc, k) => {
-      acc[k] = obj[k];
+      acc[k] = (sortChildren) ?
+               sortObjKeys2Levels(obj[k], false) :
+               obj[k];
       return acc;
     }, {});
 }
@@ -525,6 +534,16 @@ function buildModRef(modFullPath, packageJsonInode, packageJsonMTimeEpoch) {
     packageJsonInode,
     packageJsonMTimeEpoch
   ];
+}
+
+function genModuleLinks(lnkModSrcDst) { // returns observable
+  return determineLinks(lnkModSrcDst, true)
+    // just output the ln commands
+    .do(fileSrcAndDstEIs => {
+      const srcEI = fileSrcAndDstEIs.srcEI;
+      const dstEI = fileSrcAndDstEIs.dstEI;
+      out(`ln -f "${srcEI.fullPath}" "${dstEI.fullPath}"`);
+    })
 }
 
 function handleModuleLinking(lnkModSrcDst) { // returns observable

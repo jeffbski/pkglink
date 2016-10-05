@@ -30,6 +30,11 @@ Standard Options:
   Instead of performing the linking, just display the modules that
   would be linked and the amount of disk space that would be saved.
 
+ -g, --gen-ln-cmds
+
+  Instead of performing the linking, just generate link commands
+  that the system would perform and output
+
  -h, --help
 
   Show this message
