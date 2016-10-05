@@ -169,6 +169,7 @@ process
   .once('EXIT', finalTasks);
 
 hideCursor(); // show on exit
+console.log(''); // advance to full line
 
 // Main program start, create task$ and run
 const arrTaskObs = [];
@@ -309,12 +310,14 @@ function scanAndLink(rootDirs, options) {
                 const existingLength =
                   R.pathOr([], [dev, mod], existingShares)
                    .length;
-                return ((existingLength + arrPackEIs.length) >= MIN_USES);               }))
-              .do(arrDMP => {
-                commonModules += arrDMP.reduce((acc, dmp) => {
-                  acc += dmp[2].length; // arrPackEIs length
-                }, 0);
-              })
+                return ((existingLength + arrPackEIs.length) >= MIN_USES);               })
+          )
+          .do(arrDMP => {
+            commonModules += arrDMP.reduce((acc, dmp) => {
+              acc += dmp[2].length; // arrPackEIs length
+              return acc;
+            }, 0);
+          })
           .do(arrDMP => { // if dryrun, output the module and shared paths
             if (options.dryrun) {
               log.clear();
@@ -327,7 +330,8 @@ function scanAndLink(rootDirs, options) {
             }
           })
           // transform from array to obs of [dev, mod, arrPackEIs]
-          .mergeMap(arrDMP => Observable.from(arrDMP))
+          .mergeMap(arrDMP => Observable.from(arrDMP),
+                    CONC_OPS)
           .takeUntil(cancelled$)
           .mergeMap(
             dmp => determineModLinkSrcDst(dmp),
@@ -364,6 +368,8 @@ function formatBytes(bytes) {
 }
 
 function calcPerc(top, bottom) {
+  if (top === 0) { return 0; }
+  if (bottom === 0) { return 0; }
   let perc = Math.floor(top*100/bottom);
   if (perc < 0) perc = 0;
   if (perc > 100) perc = 100;
@@ -463,7 +469,8 @@ function determineModLinkSrcDst(dmp) { // ret obs of srcDstObj
     // if no master found, then use first in arrPackEI
     .map(masterEI => (masterEI) ? masterEI : arrPackEI[0])
     .mergeMap(masterEI =>
-      Observable.from(arrPackEI)
+      // use asap scheduler to prevent stack from being exceeded
+      Observable.from(arrPackEI, Rx.Scheduler.asap)
                 .filter(dstEI => !isEISameInode(masterEI, dstEI))
                 .map(dstEI => ({
                   dev, // device
@@ -474,7 +481,9 @@ function determineModLinkSrcDst(dmp) { // ret obs of srcDstObj
                   dst: dstEI.fullParentDir,
                   dstPackInode: dstEI.stat.ino,
                   dstPackMTimeEpoch: dstEI.stat.mtime.getTime()
-                })));
+                })),
+      CONC_OPS
+    );
 }
 
 function buildModRef(modFullPath, packageJsonInode, packageJsonMTimeEpoch) {
