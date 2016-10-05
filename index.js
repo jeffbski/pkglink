@@ -291,11 +291,9 @@ function scanAndLink(rootDirs, options) {
               };
               if (TREE_DEPTH) { readdirpOptions.depth = TREE_DEPTH; }
               const fstream = readdirp(readdirpOptions);
-              cancelled$.subscribe(() => {
-                fstream.destroy(); // stop reading
-              });
+              cancelled$.subscribe(() => fstream.destroy()); // stop reading
               return Observable.fromEvent(fstream, 'data')
-                               .takeUntil(cancelled$)
+                               .takeWhile(() => !cancelled)
                                .takeUntil(Observable.fromEvent(fstream, 'close'))
                                .takeUntil(Observable.fromEvent(fstream, 'end'))
                                // only fullPaths under the rootDir, not symlinked
@@ -363,13 +361,13 @@ function scanAndLink(rootDirs, options) {
           // transform from array to obs of [dev, mod, arrPackEIs]
           .mergeMap(arrDMP => Observable.from(arrDMP),
                     CONC_OPS)
-          .takeUntil(cancelled$)
+          .takeWhile(() => !cancelled)
           .mergeMap(
             dmp => determineModLinkSrcDst(dmp),
             CONC_OPS
           )
           .do(() => phase = 'link')
-          .takeUntil(cancelled$)
+          .takeWhile(() => !cancelled)
           .mergeMap(
             lnkSrcDst => (options.dryrun) ?
                        determineLinks(lnkSrcDst, false) :
@@ -501,11 +499,11 @@ function determineModLinkSrcDst(dmp) { // ret obs of srcDstObj
   return findExistingMaster(dev, mod)
     // if no master found, then use first in arrPackEI
     .map(masterEI => (masterEI) ? masterEI : arrPackEI[0])
-    .takeUntil(cancelled$)
+    .takeWhile(() => !cancelled)
     .mergeMap(masterEI =>
       // use asap scheduler to prevent stack from being exceeded
       Observable.from(arrPackEI, Rx.Scheduler.asap)
-                .takeUntil(cancelled$)
+                .takeWhile(() => !cancelled)
                 .filter(dstEI => !isEISameInode(masterEI, dstEI))
                 .map(dstEI => ({
                   dev, // device
@@ -570,12 +568,10 @@ function determineLinks(lnkModSrcDst, updateExistingShares = false) { // returns
     directoryFilter: ['!.*', '!node_modules']
   });
   fstream.once('end', () => completedModules += 1);
-  cancelled$.subscribe(() => {
-    fstream.destroy(); // stop reading
-  });
+  cancelled$.subscribe(() => fstream.destroy()); // stop reading
 
   return Observable.fromEvent(fstream, 'data')
-                   .takeUntil(cancelled$)
+                   .takeWhile(() => !cancelled)
                    .takeUntil(Observable.fromEvent(fstream, 'close'))
                    .takeUntil(Observable.fromEvent(fstream, 'end'))
                    // combine with stat for dst
