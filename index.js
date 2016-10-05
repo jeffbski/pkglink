@@ -291,10 +291,12 @@ function scanAndLink(rootDirs, options) {
               };
               if (TREE_DEPTH) { readdirpOptions.depth = TREE_DEPTH; }
               const fstream = readdirp(readdirpOptions);
-              cancelled$.subscribe(() => fstream.unpipe());
+              cancelled$.subscribe(() => {
+                fstream.destroy(); // stop reading
+              });
               return Observable.fromEvent(fstream, 'data')
                                .takeUntil(cancelled$)
-                               .takeUntil(Observable.fromEvent(fstream, 'unpipe'))
+                               .takeUntil(Observable.fromEvent(fstream, 'close'))
                                .takeUntil(Observable.fromEvent(fstream, 'end'))
                                // only fullPaths under the rootDir, not symlinked
                                .filter(ei => ei.fullParentDir.startsWith(startDir))
@@ -568,11 +570,13 @@ function determineLinks(lnkModSrcDst, updateExistingShares = false) { // returns
     directoryFilter: ['!.*', '!node_modules']
   });
   fstream.once('end', () => completedModules += 1);
-  cancelled$.subscribe(() => fstream.unpipe());
+  cancelled$.subscribe(() => {
+    fstream.destroy(); // stop reading
+  });
 
   return Observable.fromEvent(fstream, 'data')
                    .takeUntil(cancelled$)
-                   .takeUntil(Observable.fromEvent(fstream, 'unpipe'))
+                   .takeUntil(Observable.fromEvent(fstream, 'close'))
                    .takeUntil(Observable.fromEvent(fstream, 'end'))
                    // combine with stat for dst
                    .mergeMap(
