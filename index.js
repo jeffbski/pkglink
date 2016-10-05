@@ -12,6 +12,7 @@ const readdirp = require('readdirp');
 const Rx = require('rxjs');
 const showCursor = require('show-terminal-cursor');
 const singleLineLog = require('single-line-log').stdout;
+const T = require('timm');
 const truncate = require('cli-truncate');
 
 const Observable = Rx.Observable;
@@ -335,7 +336,7 @@ function scanAndLink(rootDirs, options) {
           .do(() => phase = 'link')
           .mergeMap(
             lnkSrcDst => (options.dryrun) ?
-                       determineLinks(lnkSrcDst) :
+                       determineLinks(lnkSrcDst, false) :
                        handleModuleLinking(lnkSrcDst),
             CONC_OPS
           )
@@ -424,17 +425,17 @@ function findExistingMaster(dev, mod) { // returns Obs of masterEI_modRefs (or n
                    .do(masterEI_idx => {
                      if (!masterEI_idx) {
                        // no valid found, clear out
-                       existingShares = R.set(
-                         R.lensPath([dev, mod]),
-                         [],
-                         existingShares
+                       existingShares = T.setIn(
+                         existingShares,
+                         [dev, mod],
+                         []
                        );
                      } else if (masterEI_idx[1] !== 0) {
                        // wasn't first one so needs slicing
-                       existingShares = R.set(
-                         R.lensPath([dev, mod]),
-                         masterModRefs.slice(idx),
-                         existingShares
+                       existingShares = T.setIn(
+                         existingShares,
+                         [dev, mod],
+                         masterModRefs.slice(idx)
                        );
                      }
                    })
@@ -485,7 +486,7 @@ function buildModRef(modFullPath, packageJsonInode, packageJsonMTimeEpoch) {
 }
 
 function handleModuleLinking(lnkModSrcDst) { // returns observable
-  return determineLinks(lnkModSrcDst)
+  return determineLinks(lnkModSrcDst, true)
     .mergeMap(
       fileSrcAndDstEIs => performLink(fileSrcAndDstEIs),
       (fileSrcAndDstEIs, ops) => fileSrcAndDstEIs,
@@ -493,7 +494,7 @@ function handleModuleLinking(lnkModSrcDst) { // returns observable
     );
 }
 
-function determineLinks(lnkModSrcDst) { // returns observable of fileSrcAndDstEIs
+function determineLinks(lnkModSrcDst, updateExistingShares = false) { // returns observable of fileSrcAndDstEIs
   // src is the master we link from, dst is the dst link
   const dev = lnkModSrcDst.dev;
   const mod = lnkModSrcDst.mod;
@@ -504,17 +505,19 @@ function determineLinks(lnkModSrcDst) { // returns observable of fileSrcAndDstEI
   const dstPackInode = lnkModSrcDst.dstPackInode;
   const dstPackMTimeEpoch = lnkModSrcDst.dstPackMTimeEpoch
 
-  existingShares =
-    R.over(R.lensPath([dev, mod]),
-           // if modRefs is undefined or empty, set to master
-           // then append dst after filtering any previous entry
-           R.pipe(
+  if (updateExistingShares) {
+    existingShares =
+      R.over(R.lensPath([dev, mod]),
+             // if modRefs is undefined or empty, set to master
+             // then append dst after filtering any previous entry
+             R.pipe(
 
-             R.defaultTo([buildModRef(srcRoot, srcPackInode, srcPackMTimeEpoch)]),
-             R.when(R.propEq('length', 0), R.always([buildModRef(srcRoot, srcPackInode, srcPackMTimeEpoch)])),
-             R.filter(modRef => modRef[0] !== dstRoot),
-             R.append(buildModRef(dstRoot, dstPackInode, dstPackMTimeEpoch))),
-           existingShares);
+               R.defaultTo([buildModRef(srcRoot, srcPackInode, srcPackMTimeEpoch)]),
+               R.when(R.propEq('length', 0), R.always([buildModRef(srcRoot, srcPackInode, srcPackMTimeEpoch)])),
+               R.filter(modRef => modRef[0] !== dstRoot),
+               R.append(buildModRef(dstRoot, dstPackInode, dstPackMTimeEpoch))),
+             existingShares);
+  }
 
   const fstream = readdirp({
     root: lnkModSrcDst.src,

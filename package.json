@@ -23,6 +23,7 @@
     "readdirp": "^2.1.0",
     "rxjs": "^5.0.0-beta.12",
     "show-terminal-cursor": "0.0.2",
-    "single-line-log": "^1.1.2"
+    "single-line-log": "^1.1.2",
+    "timm": "^1.0.0"
   }
 }
