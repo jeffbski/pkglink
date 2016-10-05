@@ -6,16 +6,20 @@ const Joi = require('joi');
 const minimist = require('minimist');
 const numeral = require('numeral');
 const once = require('once');
+const OS = require('os');
 const Path = require('path');
 const R = require('ramda');
 const readdirp = require('readdirp');
 const Rx = require('rxjs');
 const showCursor = require('show-terminal-cursor');
 const singleLineLog = require('single-line-log').stdout;
+const stripAnsi = require('strip-ansi');
 const T = require('timm');
 const truncate = require('cli-truncate');
 
 const Observable = Rx.Observable;
+
+const isTTY = process.stdout.isTTY; // truthy if in terminal
 
 const minimistOpts = {
   boolean: ['d', 'h', 'p'],
@@ -37,7 +41,7 @@ const argvSchema = Joi.object({
   config: Joi.string(),
   'refs-file': Joi.string(),
   size: Joi.number().integer().min(0),
-  'tree-depth': Joi.number().integer().min(1),
+  'tree-depth': Joi.number().integer().min(0),
   uses: Joi.number().integer().min(2)
 }).unknown();
 
@@ -69,7 +73,7 @@ const configSchema = Joi.object({
   concurrentOps: Joi.number().integer().min(1).default(4),
   minUses: Joi.number().integer().min(2).default(2),
   minSize: Joi.number().integer().min(0).default(0),
-  treeDepth: Joi.number().integer().min(1).default(6),
+  treeDepth: Joi.number().integer().min(0).default(0),
   consoleWidth: Joi.number().integer().min(30).default(70)
 });
 
@@ -83,13 +87,24 @@ if (configResult.error) {
   process.exitCode = 22;
   return;
 }
-const config = configResult.value; // with defaults applied
+const config = configResult.value // with defaults applied
+R.toPairs({ // for these defined argv values override config
+  minUses: argv.uses,
+  minSize: argv.size,
+  treeDepth: argv['tree-depth']
+}).forEach(p => {
+  const k = p[0];
+  const v = p[1];
+  if (!R.isNil(v)) { // if defined, use it
+    config[k] = v;
+  }
+});
 
 const REFS_PATH = Path.resolve(argv['refs-file'] || config.refsFile);
 const CONC_OPS = config.concurrentOps; // concurrent operations in mergeMap, default 4
-const MIN_USES = argv.uses || config.minUses; // minimum uses before sharing, default 2
-const MIN_SIZE = argv.size || config.minSize; // minimum size before sharing, default 0
-const TREE_DEPTH = argv['tree-depth'] || config.treeDepth; // depth to find modules, default 6
+const MIN_USES = config.minUses; // minimum uses before sharing, default 2
+const MIN_SIZE = config.minSize; // minimum size before sharing, default 0
+const TREE_DEPTH = config.treeDepth; // depth to find mods, def 0 unlim
 const EXTRACOLS = config.consoleWidth - 20;
 
 let phase = 'init'; // init | check | link
@@ -121,46 +136,56 @@ let completedModules = 0;
 const ENDS_NODE_MOD_RE = /[\\\/]node_modules$/;
 
 let cancelled = false;
-const cancelled$ = new Rx.Subject();
+const cancelled$ = new Rx.ReplaySubject();
 
-const singleLineLog$ = new Rx.Subject()
-                             .distinct()
-                             .throttleTime(10)
-                             .takeUntil(cancelled$)
-                             .subscribe({
-                               next: x => singleLineLog(x),
-                               complete: () => {
-                                 singleLineLog('');
-                                 singleLineLog.clear();
-                               }
-                             });
+const singleLineLog$ = new Rx.Subject();
+singleLineLog$
+  .filter(x => isTTY) // only if in terminal
+  .distinct()
+  .throttleTime(10)
+  .takeUntil(cancelled$)
+  .subscribe({
+    next: x => singleLineLog(x),
+    complete: () => {
+      singleLineLog('');
+      singleLineLog.clear();
+    }
+  });
 const log = singleLineLog$.next.bind(singleLineLog$);
 log.clear = () => {
-  singleLineLog('');
-  singleLineLog.clear();
+  if (isTTY) {
+    singleLineLog('');
+    singleLineLog.clear();
+  }
+}
+function out(str) {
+  const s = (isTTY) ? str : stripAnsi(str);
+  process.stdout.write(s);
+  process.stdout.write(OS.EOL);
 }
 
 const cancel = once(() => {
   cancelled = true;
   cancelled$.next(true);
   console.error('cancelling and saving state...');
-  showCursor();
+  if (isTTY) { showCursor(); }
 });
 const finalTasks = once(() => {
   singleLineLog$.complete();
-  showCursor();
+  if (isTTY) { showCursor(); }
   if (argv.dryrun) {
-    console.log(`${chalk.yellow('would save:')} ${chalk.bold(formatBytes(savedByteCount))}`);
+    out(`${chalk.yellow('would save:')} ${chalk.bold(formatBytes(savedByteCount))}`);
     return;
   }
   if (existingShares !== origExistingShares) {
     const sortedExistingShares = sortObjKeys(existingShares);
     fs.outputJsonSync(REFS_PATH, sortedExistingShares);
-    console.log(`updated ${REFS_PATH}`);
+    out(`updated ${REFS_PATH}`);
   }
   if (savedByteCount) {
-    console.log(`${chalk.green('saved:')} ${chalk.bold(formatBytes(savedByteCount))}`);
+    out(`${chalk.green('saved:')} ${chalk.bold(formatBytes(savedByteCount))}`);
   }
+  console.log('done'); // TODO remove
 });
 
 process
@@ -168,8 +193,8 @@ process
   .once('SIGTERM', cancel)
   .once('EXIT', finalTasks);
 
-hideCursor(); // show on exit
-console.log(''); // advance to full line
+if (isTTY) { hideCursor(); } // show on exit
+out(''); // advance to full line
 
 // Main program start, create task$ and run
 const arrTaskObs = [];
@@ -258,15 +283,18 @@ function scanAndLink(rootDirs, options) {
           // find all package.json files
           .mergeMap(
             startDir => {
-              const fstream = readdirp({
+              const readdirpOptions = {
                 root: startDir,
                 entryType: 'files',
                 fileFilter: ['package.json'],
-                directoryFilter: ['!.*'],
-                depth: TREE_DEPTH
-              });
+                directoryFilter: ['!.*']
+              };
+              if (TREE_DEPTH) { readdirpOptions.depth = TREE_DEPTH; }
+              const fstream = readdirp(readdirpOptions);
+              cancelled$.subscribe(() => fstream.unpipe());
               return Observable.fromEvent(fstream, 'data')
                                .takeUntil(cancelled$)
+                               .takeUntil(Observable.fromEvent(fstream, 'unpipe'))
                                .takeUntil(Observable.fromEvent(fstream, 'end'))
                                // only fullPaths under the rootDir, not symlinked
                                .filter(ei => ei.fullParentDir.startsWith(startDir))
@@ -322,10 +350,11 @@ function scanAndLink(rootDirs, options) {
             if (options.dryrun) {
               log.clear();
               arrDMP.forEach(dkv => {
-                console.log(chalk.bold(dkv[1]));
+                if (cancelled) { return; }
+                out(chalk.bold(dkv[1]));
                 const pathEIs = dkv[2];
-                pathEIs.forEach(pEI => console.log(`  ${pEI.fullParentDir}`));
-                console.log('');
+                pathEIs.forEach(pEI => out(`  ${pEI.fullParentDir}`));
+                out('');
               })
             }
           })
@@ -338,6 +367,7 @@ function scanAndLink(rootDirs, options) {
             CONC_OPS
           )
           .do(() => phase = 'link')
+          .takeUntil(cancelled$)
           .mergeMap(
             lnkSrcDst => (options.dryrun) ?
                        determineLinks(lnkSrcDst, false) :
@@ -457,6 +487,7 @@ function isEISameInode(firstEI, secondEI) {
 }
 
 function determineModLinkSrcDst(dmp) { // ret obs of srcDstObj
+  if (cancelled) { return Observable.never(); }
   const dev = dmp[0]; // device
   const mod = dmp[1]; // nameVersion
   const arrPackEI = dmp[2]; // array of package.json EI's
@@ -468,9 +499,11 @@ function determineModLinkSrcDst(dmp) { // ret obs of srcDstObj
   return findExistingMaster(dev, mod)
     // if no master found, then use first in arrPackEI
     .map(masterEI => (masterEI) ? masterEI : arrPackEI[0])
+    .takeUntil(cancelled$)
     .mergeMap(masterEI =>
       // use asap scheduler to prevent stack from being exceeded
       Observable.from(arrPackEI, Rx.Scheduler.asap)
+                .takeUntil(cancelled$)
                 .filter(dstEI => !isEISameInode(masterEI, dstEI))
                 .map(dstEI => ({
                   dev, // device
@@ -535,10 +568,12 @@ function determineLinks(lnkModSrcDst, updateExistingShares = false) { // returns
     directoryFilter: ['!.*', '!node_modules']
   });
   fstream.once('end', () => completedModules += 1);
+  cancelled$.subscribe(() => fstream.unpipe());
 
   return Observable.fromEvent(fstream, 'data')
-                   .takeUntil(Observable.fromEvent(fstream, 'end'))
                    .takeUntil(cancelled$)
+                   .takeUntil(Observable.fromEvent(fstream, 'unpipe'))
+                   .takeUntil(Observable.fromEvent(fstream, 'end'))
                    // combine with stat for dst
                    .mergeMap(
                      srcEI => {

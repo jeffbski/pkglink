@@ -51,7 +51,7 @@ Standard Options:
  -t, --tree-depth N
 
   Maximum depth to search the directories specified for node modules
-  Default depth: 6
+  Default depth: 0 (unlimited)
 
  -u, --uses N
 
