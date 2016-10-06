@@ -283,6 +283,18 @@ function verifyModRef(mod, modRef, returnEI = false) { // return obs of valid mo
 }
 
 
+function filterDirsNodeModPacks(ei) {
+  const eiName = ei.name;
+  if (eiName.charAt(0) === '.') { return false; } // no dot dirs
+  if (eiName === 'node_modules') { return true; } // node_modules
+  const eiFullParentDir = ei.fullParentDir;
+  if (eiFullParentDir.indexOf('node_modules') !== -1) { // under node_modules
+    // only if grand parent is node_modules will we continue down
+    return (Path.basename(eiFullParentDir) === 'node_modules');
+  }
+  return true; // not in node_modules yet, so keep walking
+}
+
 function scanAndLink(rootDirs, options) {
   return Observable.from(rootDirs)
           // find all package.json files
@@ -292,7 +304,7 @@ function scanAndLink(rootDirs, options) {
                 root: startDir,
                 entryType: 'files',
                 fileFilter: ['package.json'],
-                directoryFilter: ['!.*']
+                directoryFilter: filterDirsNodeModPacks
               };
               if (TREE_DEPTH) { readdirpOptions.depth = TREE_DEPTH; }
               const fstream = readdirp(readdirpOptions);
