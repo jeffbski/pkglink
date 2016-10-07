@@ -269,6 +269,9 @@ function verifyModRef(dnv, modRef, returnEI = false) { // return obs of valid mo
   .filter(x => x); // filter any undefineds, those were invalid
 }
 
+const logOnceChecking = R.once(() => {
+  log('checking for new links...');
+});
 
 function filterDirsNodeModPacks(ei) {
   const eiName = ei.name;
@@ -340,6 +343,7 @@ function scanAndLink(rootDirs, options) {
             }
           })
           .takeWhile(() => !cancelled)
+          .do(() => { logOnceChecking(); })
           .mergeMap(
             dnv_p => determineModLinkSrcDst(dnv_p),
             CONC_OPS
