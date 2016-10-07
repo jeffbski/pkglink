@@ -57,8 +57,3 @@ Standard Options:
 
   Maximum depth to search the directories specified for node modules
   Default depth: 0 (unlimited)
-
- -u, --uses N
-
-  Minimum occurences of a node module (with the same version)
-  that will cause it to be considered for linking. Default: 2

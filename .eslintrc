@@ -1,0 +1,46 @@
+{
+  "env": {
+    "browser": true,
+    "mocha": true,
+    "node": true
+  },
+  "extends": ["airbnb-base", "plugin:react/recommended"],
+  "rules": {
+    "arrow-body-style": [1, "as-needed"],
+    "camelcase": 0,
+    // don't require dangling commas
+    "comma-dangle": 0,
+    // polyfills need to come first
+    "import/imports-first": 0,
+    // causing issues with codacy
+    "import/no-unresolved": 0,
+    "indent": 0,
+    "max-len": 0,
+    "no-param-reassign": 1,
+    "no-shadow": 0,
+    // don't require functions to be declared before use
+    "no-use-before-define": [2, { "functions": false, "classes": true }],
+    "no-unused-vars": 1,
+    // Disable until Flow supports let and const
+    "no-var": 0,
+    "object-property-newline": 0,
+    "padded-blocks": 0,
+    "react/jsx-uses-react": 1,
+    "react/jsx-no-undef": 2,
+    "react/jsx-wrap-multilines": 2,
+    "react/no-find-dom-node": 0,
+    "react/prop-types": 0,
+    "valid-jsdoc": 2
+  },
+  "parser": "babel-eslint",
+  "parserOptions": {
+    "ecmaFeatures": {
+      "experimentalObjectRestSpread": true,
+      "impliedStrict": true,
+      "jsx": true
+    }
+  },
+  "plugins": [
+    "react"
+  ]
+}

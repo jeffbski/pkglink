@@ -5,7 +5,6 @@ const hideCursor = require('hide-terminal-cursor');
 const Joi = require('joi');
 const minimist = require('minimist');
 const numeral = require('numeral');
-const once = require('once');
 const OS = require('os');
 const Path = require('path');
 const R = require('ramda');
@@ -32,8 +31,7 @@ const minimistOpts = {
     p: 'prune',
     r: 'refs-file',
     s: 'size',
-    t: 'tree-depth',
-    u: 'uses'
+    t: 'tree-depth'
   }
 };
 const argv = minimist(process.argv.slice(2), minimistOpts);
@@ -42,8 +40,7 @@ const argvSchema = Joi.object({
   config: Joi.string(),
   'refs-file': Joi.string(),
   size: Joi.number().integer().min(0),
-  'tree-depth': Joi.number().integer().min(0),
-  uses: Joi.number().integer().min(2)
+  'tree-depth': Joi.number().integer().min(0)
 })
 .unknown();
 
@@ -56,28 +53,25 @@ if (argvVResult.error) {
   argvVResult.error.details.forEach(err => {
     console.error(err.message);
   });
-  process.exitCode = 20;
-  return;
+  process.exit(20);
 }
 
 // should we be using terminal output
 const isTermOut = isTTY && !argv['gen-ln-cmds'];
 
 const CONFIG_PATH = argv.config || Path.resolve(process.env.HOME, '.modshare');
-const parsedConfigJson =  safeJsonReadSync(CONFIG_PATH);
+const parsedConfigJson = safeJsonReadSync(CONFIG_PATH);
 if (parsedConfigJson instanceof Error) {
   console.error(chalk.red('error: invalid JSON configuration'));
   console.error(`${chalk.bold('config file:')} ${CONFIG_PATH}`);
   console.error(parsedConfigJson); // error
-  process.exitCode = 21;
-  return;
+  process.exit(21);
 }
 const unvalidatedConfig = parsedConfigJson || {};
 
 const configSchema = Joi.object({
   refsFile: Joi.string().default(Path.resolve(process.env.HOME, '.modshare_refs.json')),
   concurrentOps: Joi.number().integer().min(1).default(4),
-  minUses: Joi.number().integer().min(2).default(2),
   minSize: Joi.number().integer().min(0).default(0),
   treeDepth: Joi.number().integer().min(0).default(0),
   consoleWidth: Joi.number().integer().min(30).default(70)
@@ -90,12 +84,10 @@ if (configResult.error) {
   configResult.error.details.forEach(err => {
     console.error(err.message);
   });
-  process.exitCode = 22;
-  return;
+  process.exit(22);
 }
-const config = configResult.value // with defaults applied
+const config = configResult.value; // with defaults applied
 R.toPairs({ // for these defined argv values override config
-  minUses: argv.uses,
   minSize: argv.size,
   treeDepth: argv['tree-depth']
 }).forEach(p => {
@@ -108,21 +100,17 @@ R.toPairs({ // for these defined argv values override config
 
 const REFS_PATH = Path.resolve(argv['refs-file'] || config.refsFile);
 const CONC_OPS = config.concurrentOps; // concurrent operations in mergeMap, default 4
-const MIN_USES = config.minUses; // minimum uses before sharing, default 2
 const MIN_SIZE = config.minSize; // minimum size before sharing, default 0
 const TREE_DEPTH = config.treeDepth; // depth to find mods, def 0 unlim
 const EXTRACOLS = config.consoleWidth - 20;
 
-let phase = 'init'; // init | check | link
-
 if (argv.help || (!argv._.length && !argv.prune)) { // display help
   displayHelp();
-  process.exitCode = 23;
-  return;
+  process.exit(23);
 }
 
 function displayHelp() {
-  const help = fs.readFileSync(Path.join(__dirname, 'usage.txt'));
+  const help = fs.readFileSync(Path.join(__dirname, '..', 'usage.txt'));
   process.stderr.write(help);
 }
 
@@ -136,7 +124,6 @@ const origExistingShares = existingShares; // keep ref copy
 
 let packageCount = 0;
 let savedByteCount = 0;
-let commonModules = 0;
 let completedModules = 0;
 
 const ENDS_NODE_MOD_RE = /[\\\/]node_modules$/;
@@ -163,20 +150,20 @@ log.clear = () => {
     singleLineLog('');
     singleLineLog.clear();
   }
-}
+};
 function out(str) {
   const s = (isTermOut) ? str : stripAnsi(str);
   process.stdout.write(s);
   process.stdout.write(OS.EOL);
 }
 
-const cancel = once(() => {
+const cancel = R.once(() => {
   cancelled = true;
   cancelled$.next(true);
   console.error('cancelling and saving state...');
   if (isTermOut) { showCursor(); }
 });
-const finalTasks = once(() => {
+const finalTasks = R.once(() => {
   singleLineLog$.complete();
   if (isTermOut) { showCursor(); }
   if (argv.dryrun || argv['gen-ln-cmds']) {
@@ -184,7 +171,7 @@ const finalTasks = once(() => {
     return;
   }
   if (existingShares !== origExistingShares) {
-    const sortedExistingShares = sortObjKeys2Levels(existingShares);
+    const sortedExistingShares = sortObjKeys(existingShares);
     fs.outputJsonSync(REFS_PATH, sortedExistingShares);
     out(`updated ${REFS_PATH}`);
   }
@@ -208,7 +195,7 @@ if (argv.prune) {
     Observable.of('pruning')
               .do(() => log(`${chalk.bold('pruning...')}`))
               .mergeMap(() => prune(existingShares)
-                .do(newShares => existingShares = newShares))
+                .do(newShares => { existingShares = newShares; }))
   );
 }
 if (startingDirs.length) {
@@ -217,42 +204,41 @@ if (startingDirs.length) {
 
 // run all the task observables serially
 if (arrTaskObs.length) {
-  Observable.concat.apply(Observable, arrTaskObs)
+  Observable.concat(...arrTaskObs)
             .subscribe({
               error: err => console.error(err),
               complete: () => finalTasks()
             });
 }
 
-function prune(dmr) { // return obs of newDMRObj
+function prune(dnvMR) { // return obs of new dnvMR object
   return Observable.from(
-    flattenObj2Levels(dmr) // [[d, m, r]]
+    R.toPairs(dnvMR) // [dnv, arrModRefs]
   )
-  .mergeMap(d_m_r => verifyDMR(d_m_r), CONC_OPS)
-  .reduce((acc, d_m_r) => R.append(d_m_r, acc),
+  .mergeMap(dnv_MR => verifyDMR(dnv_MR), CONC_OPS)
+  .reduce((acc, dnv_MR) => R.append(dnv_MR, acc),
           [])
-  .map(flatDMR => rebuild2LevelObj(flatDMR));
+  .map(flatDMR => R.fromPairs(flatDMR));
 }
 
-function verifyDMR(d_m_r) {  // return obs of valid d_m_r
-  const mod = d_m_r[1];
-  return Observable.from(d_m_r[2]) // obs of modRefs
+function verifyDMR([dnv, arrModRefs]) {  // return obs of valid dnv_MR
+  return Observable.from(arrModRefs) // obs of modRefs
   // returns obs of valid modRef
-                   .mergeMap(modRef => verifyModRef(mod, modRef, false),
+                   .mergeMap(modRef => verifyModRef(dnv, modRef, false),
                              CONC_OPS)
                    .reduce((acc, modRef) => R.append(modRef, acc),
                            [])
-                   .map(arrRefEI => [d_m_r[0], d_m_r[1], arrRefEI]);
+                   .map(arrRefEI => [dnv, arrRefEI]); // dnv_MR
 }
 
-function verifyModRef(mod, modRef, returnEI = false) { // return obs of valid modRef
+function verifyModRef(dnv, modRef, returnEI = false) { // return obs of valid modRef
   const modDir = modRef[0];
   const packInode = modRef[1];
   const packMTimeEpoch = modRef[2];
   const packPath = Path.join(modDir, 'package.json');
   let packStat;
   return Observable.from(fs.statAsync(packPath)
-    .then(stat => {
+    .then(stat => { // eslint-disable-line consistent-return
       if (stat &&
           stat.ino === packInode &&
           stat.mtime.getTime() === packMTimeEpoch) {
@@ -260,10 +246,11 @@ function verifyModRef(mod, modRef, returnEI = false) { // return obs of valid mo
         return fs.readJsonAsync(packPath, { throws: false });
       }
     })
-    .then(json => { // if json and matches, return modRef or EI
+    // if json and matches, return modRef or EI
+    .then(json => { // eslint-disable-line consistent-return
       if (json) {
-        const nameVersion = formatModNameVersion(json.name, json.version);
-        if (nameVersion === mod) {
+        const devNameVer = formatDevNameVersion(packStat.dev, json.name, json.version);
+        if (devNameVer === dnv) {
           return (returnEI) ?
                  { // masterEI
                    stat: packStat,
@@ -303,6 +290,7 @@ function scanAndLink(rootDirs, options) {
               const readdirpOptions = {
                 root: startDir,
                 entryType: 'files',
+                lstat: true,  // want actual files not symlinked
                 fileFilter: ['package.json'],
                 directoryFilter: filterDirsNodeModPacks
               };
@@ -312,9 +300,7 @@ function scanAndLink(rootDirs, options) {
               return Observable.fromEvent(fstream, 'data')
                                .takeWhile(() => !cancelled)
                                .takeUntil(Observable.fromEvent(fstream, 'close'))
-                               .takeUntil(Observable.fromEvent(fstream, 'end'))
-                               // only fullPaths under the rootDir, not symlinked
-                               .filter(ei => ei.fullParentDir.startsWith(startDir))
+                               .takeUntil(Observable.fromEvent(fstream, 'end'));
             },
             CONC_OPS
           )
@@ -324,73 +310,50 @@ function scanAndLink(rootDirs, options) {
           // get name and version from package.json
           .mergeMap(
             ei => Observable.from(fs.readJsonAsync(ei.fullPath, { throws: false })),
-            (ei, pack) => ({
+            (ei, pack) => ({ // returns eiDN
               entryInfo: ei,
-              nameVersion: (pack && pack.name && pack.version) ?
-                           formatModNameVersion(pack.name, pack.version) :
-                           null
+              devNameVer: (pack && pack.name && pack.version) ?
+                          formatDevNameVersion(ei.stat.dev, pack.name, pack.version) :
+                          null
             }),
             CONC_OPS
           )
-          .filter(obj => obj.nameVersion) // has name and version, not null
-          .do(obj => packageCount += 1)
+          .filter(obj => obj.devNameVer) // has name and version, not null
+          .do(obj => { packageCount += 1; })
           .do(obj => log(`${chalk.blue('pkgs:')} ${numeral(packageCount).format('0,0')} ${chalk.bold('scanning:')} ${chalk.dim(trunc(obj.entryInfo.fullParentDir))}`))
-          .reduce((acc, obj) => { // reduce into allPendingMap { DEV: { nameVersion: arrayPackEI } }
-            const dev = obj.entryInfo.stat.dev;
-            if (!acc[dev]) { acc[dev] = {}; } // separate maps by device id
-            const paths = acc[dev][obj.nameVersion] || [];
-            acc[dev][obj.nameVersion] = paths.concat(obj.entryInfo);
-            return acc;
-          }, {})
-          .do(allPendingMap => phase = 'check')
-          .do(allPendingMap => log(`${chalk.bold('checking for shared modules...')}`))
-          // transform  allPendingMap to [[dev, mod, arrPackEIs]]
-          // filter by MIN_USES
-          .map(allPendingMap =>
-            flattenObj2Levels(allPendingMap)
-              .filter(dmp => {
-                const dev = dmp[0];
-                const mod = dmp[1];
-                const arrPackEIs = dmp[2];
-                const existingLength =
-                  R.pathOr([], [dev, mod], existingShares)
-                   .length;
-                return ((existingLength + arrPackEIs.length) >= MIN_USES);               })
-          )
-          .do(arrDMP => {
-            commonModules += arrDMP.reduce((acc, dmp) => {
-              acc += dmp[2].length; // arrPackEIs length
+          .groupBy(eiDN => eiDN.devNameVer)
+          .mergeMap(group => {
+            return group.reduce((acc, eiDN) => {
+              acc.push(eiDN.entryInfo);
               return acc;
-            }, 0);
+            }, [])
+            .map(arrEI => [group.key, arrEI]); // [devNameVer, arrPackEI]
           })
-          .do(arrDMP => { // if dryrun, output the module and shared paths
+          .do(dnv_packEIs => { // if dryrun, output the module and shared paths
             if (options.dryrun) {
               log.clear();
-              arrDMP.forEach(dkv => {
-                if (cancelled) { return; }
-                out(chalk.bold(dkv[1]));
-                const pathEIs = dkv[2];
-                pathEIs.forEach(pEI => out(`  ${pEI.fullParentDir}`));
-                out('');
-              })
+              const [dnv, packEIs] = dnv_packEIs;
+              if (cancelled) { return; }
+              out(chalk.bold(dnv.split(':')[1])); // nameVersion
+              packEIs.forEach(pEI => out(`  ${pEI.fullParentDir}`));
+              out('');
             }
           })
-          // transform from array to obs of [dev, mod, arrPackEIs]
-          .mergeMap(arrDMP => Observable.from(arrDMP),
-                    CONC_OPS)
           .takeWhile(() => !cancelled)
           .mergeMap(
-            dmp => determineModLinkSrcDst(dmp),
+            dnv_p => determineModLinkSrcDst(dnv_p),
             CONC_OPS
           )
-          .do(() => phase = 'link')
           .takeWhile(() => !cancelled)
           .mergeMap(
-            lnkSrcDst => (options.dryrun) ?
-                       determineLinks(lnkSrcDst, false) :
-                       (options['gen-ln-cmds']) ?
-                       genModuleLinks(lnkSrcDst) :
-                       handleModuleLinking(lnkSrcDst),
+            lnkSrcDst => {
+              if (options.dryrun) {
+                return determineLinks(lnkSrcDst, false);
+              } else if (options['gen-ln-cmds']) {
+                return genModuleLinks(lnkSrcDst);
+              }
+              return handleModuleLinking(lnkSrcDst);
+            },
             CONC_OPS
           )
           .scan(
@@ -400,126 +363,47 @@ function scanAndLink(rootDirs, options) {
             },
             0
           )
-          .do(savedBytes => savedByteCount = savedBytes)
+          .do(savedBytes => { savedByteCount = savedBytes; })
           .do(savedBytes => {
             const verb = (options.dryrun) ? 'checking:' : 'linking:';
             const saved = (options.dryrun) ? 'would save:' : 'saved:';
-            log(`${chalk.bold(verb)} ${calcPerc(completedModules, commonModules)}% ${chalk.green(saved)} ${chalk.bold(formatBytes(savedBytes))}`);
+            log(`${chalk.bold(verb)} ${calcPerc(completedModules, packageCount)}% ${chalk.green(saved)} ${chalk.bold(formatBytes(savedBytes))}`);
           });
 }
 
-function formatModNameVersion(name, version) {
-  return `${name}-${version}`;
+function formatDevNameVersion(dev, name, version) {
+  return `${dev}:${name}-${version}`;
 }
 
 function formatBytes(bytes) {
-  return numeral(bytes).format('0.[00]b')
+  return numeral(bytes).format('0.[00]b');
 }
 
 function calcPerc(top, bottom) {
   if (top === 0) { return 0; }
   if (bottom === 0) { return 0; }
-  let perc = Math.floor(top*100/bottom);
+  let perc = Math.floor((top * 100) / bottom);
   if (perc < 0) perc = 0;
   if (perc > 100) perc = 100;
   return perc;
 }
 
-function sortObjKeys2Levels(obj, sortChildren = true) {
+function sortObjKeys(obj) {
   return Object.keys(obj)
     .sort()
     .reduce((acc, k) => {
-      acc[k] = (sortChildren) ?
-               sortObjKeys2Levels(obj[k], false) :
-               obj[k];
+      acc[k] = obj[k];
       return acc;
     }, {});
 }
 
-function flattenObj2Levels(dmr) { // return [[d, m, r]]
-  return R.toPairs(dmr)
-          .map(d_mr => R.toPairs(d_mr[1])
-                        .map(m_r => [d_mr[0], m_r[0], m_r[1]]))
-          .reduce((acc, arr) => R.concat(acc, arr), []);
-}
 
-function rebuild2LevelObj(arrDMR, withObj = {}) { // return { d: m: r }
-  // does deepMerge if withObj is provided
-  return arrDMR.reduce(
-    // accumulate new obj setting the lensPath([d, m]) with r
-    (acc, d_m_r) => R.set(R.lensPath(R.take(2, d_m_r)),
-                          d_m_r[2],
-                          acc),
-    withObj
-  );
-}
-
-function findExistingMaster(dev, mod) { // returns Obs of masterEI_modRefs (or none)
-  /*
-    we will be checking through the existingShares[dev][mod] modRefs
-    to see if any are still valid. Resolve with the first one that is
-    still valid, also returning the remaining modRefs. Not all of the
-    modRefs will have been checked, just enough to find one valid one.
-    Updates existingShares to new object with updated modRefs if
-    any were invalid.
-    Use prune to go through and clean out all invalid ones.
-    Resolves with masterEI or null
-   */
-
-  // check existingShares[dev][mod] for ref tuples
-  const masterModRefs = R.pathOr([], [dev, mod], existingShares); // array of [modDir, packInode, packMTimeEpoch] modRef tuples
-
-  return Observable.from(masterModRefs)
-                   .mergeMap(
-                     modRef => verifyModRef(mod, modRef, true),
-                     1 // one at a time since only need first
-                   )
-                   .first(
-                     masterEI => masterEI, // exists
-                     (masterEI, idx) => [masterEI, idx],
-                     null
-                   )
-                   .do(masterEI_idx => {
-                     if (!masterEI_idx) {
-                       // no valid found, clear out
-                       existingShares = T.setIn(
-                         existingShares,
-                         [dev, mod],
-                         []
-                       );
-                     } else if (masterEI_idx[1] !== 0) {
-                       // wasn't first one so needs slicing
-                       existingShares = T.setIn(
-                         existingShares,
-                         [dev, mod],
-                         masterModRefs.slice(idx)
-                       );
-                     }
-                   })
-                   // just return masterEI or null
-                   .map(masterEI_idx => {
-                     return (masterEI_idx) ? masterEI_idx[0] : null;
-                   });
-}
-
-function isEISameInode(firstEI, secondEI) {
-  return ((firstEI.stat.dev === secondEI.stat.dev) &&
-          (firstEI.stat.ino === secondEI.stat.ino));
-}
-
-function determineModLinkSrcDst(dmp) { // ret obs of srcDstObj
+function determineModLinkSrcDst([dnv, arrPackEI]) { // ret obs of srcDstObj
   if (cancelled) { return Observable.never(); }
-  const dev = dmp[0]; // device
-  const mod = dmp[1]; // nameVersion
-  const arrPackEI = dmp[2]; // array of package.json EI's
 
-  if (phase === 'check') {
-    log(`${chalk.bold('checking:')} ${chalk.dim(trunc(arrPackEI[0].fullParentDir))}`);
-  }
-
-  return findExistingMaster(dev, mod)
+  return findExistingMaster(dnv, arrPackEI)
     // if no master found, then use first in arrPackEI
-    .map(masterEI => (masterEI) ? masterEI : arrPackEI[0])
+    .map(masterEI => masterEI || arrPackEI[0])
     .takeWhile(() => !cancelled)
     .mergeMap(masterEI =>
       // use asap scheduler to prevent stack from being exceeded
@@ -527,8 +411,7 @@ function determineModLinkSrcDst(dmp) { // ret obs of srcDstObj
                 .takeWhile(() => !cancelled)
                 .filter(dstEI => !isEISameInode(masterEI, dstEI))
                 .map(dstEI => ({
-                  dev, // device
-                  mod, // moduleNameVersion
+                  devNameVer: dnv, // device:nameVersion
                   src: masterEI.fullParentDir,
                   srcPackInode: masterEI.stat.ino,
                   srcPackMTimeEpoch: masterEI.stat.mtime.getTime(),
@@ -538,6 +421,61 @@ function determineModLinkSrcDst(dmp) { // ret obs of srcDstObj
                 })),
       CONC_OPS
     );
+}
+
+function findExistingMaster(dnv, arrPackEI) { // returns Obs of masterEI_modRefs (or none)
+  /*
+     we will be checking through the existingShares[dnv] modRefs
+     to see if any are still valid. Resolve with the first one that is
+     still valid, also returning the remaining modRefs. Not all of the
+     modRefs will have been checked, just enough to find one valid one.
+     Updates existingShares to new object with updated modRefs if
+     any were invalid.
+     Use prune to go through and clean out all invalid ones.
+     Resolves with masterEI or uses first from arrPackEI
+   */
+
+  // check existingShares[dnv] for ref tuples
+  const masterModRefs = R.pathOr([], [dnv], existingShares); // array of [modDir, packInode, packMTimeEpoch] modRef tuples
+
+  return Observable.from(masterModRefs)
+                   .mergeMap(
+                     modRef => verifyModRef(dnv, modRef, true),
+                     1 // one at a time since only need first
+                   )
+                   .first(
+                     masterEI => masterEI, // exists
+                     (masterEI, idx) => [masterEI, idx],
+                     null
+                   )
+                   .map(masterEI_idx => {
+                     if (!masterEI_idx) {
+                       // no valid found, use arrPackEI[0]
+                       const packEI = arrPackEI[0];
+                       existingShares = T.setIn(
+                         existingShares,
+                         [dnv],
+                         [buildModRef(packEI.fullParentDir,
+                                     packEI.stat.ino,
+                                     packEI.stat.mtime.getTime())]
+                       );
+                       return packEI;
+                     } else if (masterEI_idx[1] !== 0) {
+                       const idx = masterEI_idx[1];
+                       // wasn't first one so needs slicing
+                       existingShares = T.setIn(
+                         existingShares,
+                         [dnv],
+                         masterModRefs.slice(idx)
+                       );
+                     }
+                     return masterEI_idx[0];
+                   });
+}
+
+function isEISameInode(firstEI, secondEI) {
+  return ((firstEI.stat.dev === secondEI.stat.dev) &&
+          (firstEI.stat.ino === secondEI.stat.ino));
 }
 
 function buildModRef(modFullPath, packageJsonInode, packageJsonMTimeEpoch) {
@@ -555,7 +493,7 @@ function genModuleLinks(lnkModSrcDst) { // returns observable
       const srcEI = fileSrcAndDstEIs.srcEI;
       const dstEI = fileSrcAndDstEIs.dstEI;
       out(`ln -f "${srcEI.fullPath}" "${dstEI.fullPath}"`);
-    })
+    });
 }
 
 function handleModuleLinking(lnkModSrcDst) { // returns observable
@@ -569,36 +507,37 @@ function handleModuleLinking(lnkModSrcDst) { // returns observable
 
 function determineLinks(lnkModSrcDst, updateExistingShares = false) { // returns observable of fileSrcAndDstEIs
   // src is the master we link from, dst is the dst link
-  const dev = lnkModSrcDst.dev;
-  const mod = lnkModSrcDst.mod;
+  const devNameVer = lnkModSrcDst.devNameVer; // device:nameVersion
   const srcRoot = lnkModSrcDst.src;
   const srcPackInode = lnkModSrcDst.srcPackInode;
   const srcPackMTimeEpoch = lnkModSrcDst.srcPackMTimeEpoch;
   const dstRoot = lnkModSrcDst.dst;
   const dstPackInode = lnkModSrcDst.dstPackInode;
-  const dstPackMTimeEpoch = lnkModSrcDst.dstPackMTimeEpoch
+  const dstPackMTimeEpoch = lnkModSrcDst.dstPackMTimeEpoch;
 
   if (updateExistingShares) {
+    const arrWithSrcModRef = [buildModRef(srcRoot, srcPackInode, srcPackMTimeEpoch)];
+    const dstModRef = buildModRef(dstRoot, dstPackInode, dstPackMTimeEpoch);
     existingShares =
-      R.over(R.lensPath([dev, mod]),
+      R.over(R.lensPath([devNameVer]),
              // if modRefs is undefined or empty, set to master
              // then append dst after filtering any previous entry
              R.pipe(
-
-               R.defaultTo([buildModRef(srcRoot, srcPackInode, srcPackMTimeEpoch)]),
-               R.when(R.propEq('length', 0), R.always([buildModRef(srcRoot, srcPackInode, srcPackMTimeEpoch)])),
+               R.defaultTo(arrWithSrcModRef),
+               R.when(R.propEq('length', 0), R.always(arrWithSrcModRef)),
                R.filter(modRef => modRef[0] !== dstRoot),
-               R.append(buildModRef(dstRoot, dstPackInode, dstPackMTimeEpoch))),
+               R.append(dstModRef)),
              existingShares);
   }
 
   const fstream = readdirp({
     root: lnkModSrcDst.src,
     entryType: 'files',
+    lstat: true,  // want actual files not symlinked
     fileFilter: ['!.*'],
     directoryFilter: ['!.*', '!node_modules']
   });
-  fstream.once('end', () => completedModules += 1);
+  fstream.once('end', () => { completedModules += 1; });
   cancelled$.subscribe(() => fstream.destroy()); // stop reading
 
   return Observable.fromEvent(fstream, 'data')
@@ -621,7 +560,7 @@ function determineLinks(lnkModSrcDst, updateExistingShares = false) { // returns
                              }
                              return null;
                            })
-                       )
+                       );
                      },
                      (srcEI, dstEI) => ({
                        srcEI,
@@ -660,7 +599,7 @@ function performLink(srcAndDstEIs) {  // returns observable
         console.error(`failed to unlink/link src:${srcEI.fullPath} dst:${dstEI.fullPath}`, err);
         throw err;
       })
-  )
+  );
 }
 
 function trunc(str) {
@@ -677,9 +616,12 @@ function safeJsonReadSync(file) { // returns obj, error, or undefined when not f
         return err;
       }
     }
+    return undefined;
   } catch (err) {
     if (err.code !== 'ENOENT') {
       console.error(err);
+      return err;
     }
+    return undefined;
   }
 }
