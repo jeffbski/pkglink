@@ -1,10 +1,9 @@
 {
   "env": {
-    "browser": true,
     "mocha": true,
     "node": true
   },
-  "extends": ["airbnb-base", "plugin:react/recommended"],
+  "extends": ["airbnb-base"],
   "rules": {
     "arrow-body-style": [1, "as-needed"],
     "camelcase": 0,
@@ -25,22 +24,13 @@
     "no-var": 0,
     "object-property-newline": 0,
     "padded-blocks": 0,
-    "react/jsx-uses-react": 1,
-    "react/jsx-no-undef": 2,
-    "react/jsx-wrap-multilines": 2,
-    "react/no-find-dom-node": 0,
-    "react/prop-types": 0,
     "valid-jsdoc": 2
   },
   "parser": "babel-eslint",
   "parserOptions": {
     "ecmaFeatures": {
       "experimentalObjectRestSpread": true,
-      "impliedStrict": true,
-      "jsx": true
+      "impliedStrict": true
     }
   },
-  "plugins": [
-    "react"
-  ]
 }

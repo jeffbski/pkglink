@@ -1,7 +1,4 @@
 {
-  "presets": [
-    "react"
-  ],
   "plugins": [
     ["transform-es2015-template-literals", { "loose": true }],
     "transform-es2015-literals",
@@ -22,7 +19,8 @@
     "transform-es2015-block-scoping",
     "transform-object-rest-spread",
     "transform-es3-member-expression-literals",
-    "transform-es3-property-literals"
+    "transform-es3-property-literals",
+    "closure-elimination"
   ],
   "env": {
     "commonjs": {
