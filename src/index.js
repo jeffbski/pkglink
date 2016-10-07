@@ -20,6 +20,9 @@ const Observable = Rx.Observable;
 
 const isTTY = process.stdout.isTTY; // truthy if in terminal
 
+const DEFAULT_CONFIG_FILE = '.pkglink'; // in home directory
+const DEFAULT_REFS_FILE = '.pkglink_refs'; // in home directory
+
 const minimistOpts = {
   boolean: ['d', 'g', 'h', 'p'],
   string: ['c', 'r'],
@@ -59,7 +62,8 @@ if (argvVResult.error) {
 // should we be using terminal output
 const isTermOut = isTTY && !argv['gen-ln-cmds'];
 
-const CONFIG_PATH = argv.config || Path.resolve(process.env.HOME, '.modshare');
+const CONFIG_PATH = argv.config ||
+                    Path.resolve(process.env.HOME, DEFAULT_CONFIG_FILE);
 const parsedConfigJson = safeJsonReadSync(CONFIG_PATH);
 if (parsedConfigJson instanceof Error) {
   console.error(chalk.red('error: invalid JSON configuration'));
@@ -70,7 +74,8 @@ if (parsedConfigJson instanceof Error) {
 const unvalidatedConfig = parsedConfigJson || {};
 
 const configSchema = Joi.object({
-  refsFile: Joi.string().default(Path.resolve(process.env.HOME, '.modshare_refs.json')),
+  refsFile: Joi.string().default(
+    Path.resolve(process.env.HOME, DEFAULT_REFS_FILE)),
   concurrentOps: Joi.number().integer().min(1).default(4),
   minSize: Joi.number().integer().min(0).default(0),
   treeDepth: Joi.number().integer().min(0).default(0),

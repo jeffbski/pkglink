@@ -1,29 +1,28 @@
-Usage: modshare {OPTIONS} [dir] [dirN]
+Usage: pkglink {OPTIONS} [dir] [dirN]
 
 Description:
 
-     modshare recursively searches the directories provided for node
-     modules (in node_modules directory) with a valid package.json.
-     It uses the package name and version to match up possible
-     modules that can be shared. Once it finds like modules to share
-     it walks through the modules to check for files that can be
-     linked. If the files modified datetime and size compares and
-     the other criteria are met (like minimum size) it will create
-     a hard link for the files to save disk space. It keeps track
-     of modules that it has linked in a refs file so modshare
-     can use this to quickly locate similar modules on future runs.
-     The refs are always double checked that they haven't changed
-     before being considered for linking. This is simply a performance
-     optimization for repeat use. The refs file makes it convenient
-     to perform future runs on new directories without having to
-     reprocess the old. If the ref modules have changed they will be
-     ignored and removed from future consideration.
+     pkglink - Node.js package hard linker
+
+     pkglink recursively searches directories for Node.js packages
+     installed in node_modules directories. It uses the package name
+     and version to match up possible packages to share. Once it finds
+     similar packages, pkglink walks through the package directory tree
+     checking for files that can be linked. If each file's modified
+     datetime and size match, it will create a hard link for that file
+     to save disk space.
+
+     It keeps track of modules linked in ~/.pkglink_refs to quickly
+     locate similar modules on future runs. The refs are always
+     double checked before being considered for linking. This makes
+     it convenient to perform future pkglink runs on new directories
+     without having to reprocess the old.
 
 Standard Options:
 
  -c, --config CONFIG_PATH
 
-  This option overrides the config file path, default ~/.modshare
+  This option overrides the config file path, default ~/.pkglink
 
  -d, --dryrun
 
@@ -47,7 +46,7 @@ Standard Options:
  -r, --refs-file REFS_FILE_PATH
 
   Specify where to load and store the link refs file which is used to
-  quickly locate previously linked modules. Default ~/modshare_refs.json
+  quickly locate previously linked modules. Default ~/pkglink_refs.json
 
  -s, --size N
 

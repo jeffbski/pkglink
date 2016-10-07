@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "",
   "main": "build-lib/index.js",
+  "bin": "build-lib/cli.js",
   "scripts": {
     "clean": "mkdirp build-lib && rimraf build-lib/*",
     "build": "cross-env BABEL_ENV=commonjs babel -q src --out-dir build-lib",
