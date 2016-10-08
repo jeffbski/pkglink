@@ -95,8 +95,11 @@ if (configResult.error) {
 }
 const config = configResult.value; // with defaults applied
 R.toPairs({ // for these defined argv values override config
+  dryrun: argv.dryrun,
+  genLnCmds: argv['gen-ln-cmds'],
   minSize: argv.size,
-            treeDepth: argv['tree-depth']
+  refsFile: argv['refs-file'],
+  treeDepth: argv['tree-depth']
 }).forEach(p => {
   const k = p[0];
   const v = p[1];
@@ -104,12 +107,7 @@ R.toPairs({ // for these defined argv values override config
     config[k] = v;
   }
 });
-
-const REFS_PATH = Path.resolve(argv['refs-file'] || config.refsFile);
-rtenv.CONC_OPS = config.concurrentOps; // concurrent operations in mergeMap, default 4
-rtenv.MIN_SIZE = config.minSize; // minimum size before sharing, default 0
-rtenv.TREE_DEPTH = config.treeDepth; // depth to find mods, def 0 unlim
-rtenv.EXTRACOLS = config.consoleWidth - 20;
+config.extraCols = config.consoleWidth - 20;
 
 if (argv.help || (!argv._.length && !argv.prune)) { // display help
   displayHelp();
@@ -120,12 +118,12 @@ function displayHelp() {
   outputFileStderrSync(Path.join(__dirname, '..', 'usage.txt'));
 }
 
-fs.ensureFileSync(REFS_PATH);
+fs.ensureFileSync(config.refsFile);
 
 const startingDirs = argv._.map(x => Path.resolve(x));
 
 // key=nameVersion value: array of ref tuples [modPath, packJsonInode, packJsonMTimeEpoch]
-rtenv.existingShares = fs.readJsonSync(REFS_PATH, { throws: false }) || {};
+rtenv.existingShares = fs.readJsonSync(config.refsFile, { throws: false }) || {};
 const origExistingShares = rtenv.existingShares; // keep ref copy
 
 
@@ -175,8 +173,8 @@ const finalTasks = R.once(() => {
   }
   if (rtenv.existingShares !== origExistingShares) {
     const sortedExistingShares = sortObjKeys(rtenv.existingShares);
-    fs.outputJsonSync(REFS_PATH, sortedExistingShares);
-    out(`updated ${REFS_PATH}`);
+    fs.outputJsonSync(config.refsFile, sortedExistingShares);
+    out(`updated ${config.refsFile}`);
   }
   if (rtenv.savedByteCount) {
     out(`${chalk.green('saved:')} ${chalk.bold(formatBytes(rtenv.savedByteCount))}`);
@@ -197,12 +195,12 @@ if (argv.prune) {
   arrTaskObs.push(
     Observable.of('pruning')
               .do(() => log(`${chalk.bold('pruning...')}`))
-              .mergeMap(() => prune(rtenv.existingShares, rtenv)
+              .mergeMap(() => prune(rtenv.existingShares, config)
                 .do(newShares => { rtenv.existingShares = newShares; }))
   );
 }
 if (startingDirs.length) {
-  arrTaskObs.push(scanAndLink(startingDirs, argv, rtenv));
+  arrTaskObs.push(scanAndLink(startingDirs, config, rtenv));
 }
 
 // run all the task observables serially

@@ -16,14 +16,10 @@ noopLog.clear = noop;
 const rtenv = {
   cancelled: false,
   cancelled$: Observable.never(),
-  CONC_OPS: 4,
   existingShares: {},
-  EXTRACOLS: 60,
   log: noopLog,
-  MIN_SIZE: 0,
   out: noop,
-  savedByteCount: 0,
-  TREE_DEPTH: 0
+  savedByteCount: 0
 };
 
 
