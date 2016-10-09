@@ -194,12 +194,12 @@ if (argv.prune) {
   arrTaskObs.push(
     Observable.of('pruning')
               .do(() => log(`${chalk.bold('pruning...')}`))
-              .mergeMap(() => prune(rtenv.existingShares, config)
+              .mergeMap(() => prune(config, rtenv.existingShares)
                 .do(newShares => { rtenv.existingShares = newShares; }))
   );
 }
 if (startingDirs.length) {
-  arrTaskObs.push(scanAndLink(startingDirs, config, rtenv));
+  arrTaskObs.push(scanAndLink(config, rtenv, startingDirs));
 }
 
 // run all the task observables serially

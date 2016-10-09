@@ -16,9 +16,11 @@ noopLog.clear = noop;
 const rtenv = {
   cancelled: false,
   cancelled$: Observable.never(),
+  completedModules: 0,
   existingShares: {},
   log: noopLog,
   out: noop,
+  packageCount: 0,
   savedByteCount: 0
 };
 
