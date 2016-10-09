@@ -133,7 +133,6 @@ const singleLineLog$ = new Subject();
 singleLineLog$
   .filter(x => isTermOut) // only if in terminal
   .distinct()
-  .throttleTime(10)
   .takeUntil(rtenv.cancelled$)
   .subscribe({
     next: x => singleLineLog(x),

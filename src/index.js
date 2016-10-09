@@ -1,13 +1,13 @@
 import chalk from 'chalk';
 import fs from 'fs-extra-promise';
-import numeral from 'numeral';
 import Path from 'path';
 import R from 'ramda';
 import readdirp from 'readdirp';
 import Rx, { Observable } from 'rxjs';
 import T from 'timm';
-import { calcPerc, formatBytes, formatDevNameVersion,
-         trunc } from './util/format';
+import { formatDevNameVersion } from './util/format';
+import { createLogOnceChecking, createLogScan,
+         createLogLinking } from './util/log';
 
 const ENDS_NODE_MOD_RE = /[\\\/]node_modules$/;
 let packageCount = 0;
@@ -94,9 +94,9 @@ function filterDirsNodeModPacks(ei) {
 
 export function scanAndLink(rootDirs, config, rtenv) {
 
-  const logOnceChecking = R.once(() => {
-    rtenv.log('checking for new links...');
-  });
+  const logOnceChecking = createLogOnceChecking(rtenv);
+  const logScan = createLogScan(config, rtenv);
+  const logLinking = createLogLinking(config, rtenv);
 
   return Observable.from(rootDirs)
           // find all package.json files
@@ -135,7 +135,7 @@ export function scanAndLink(rootDirs, config, rtenv) {
           )
           .filter(obj => obj.devNameVer) // has name and version, not null
           .do(obj => { packageCount += 1; })
-          .do(obj => rtenv.log(`${chalk.blue('pkgs:')} ${numeral(packageCount).format('0,0')} ${chalk.bold('scanning:')} ${chalk.dim(trunc(config.extraCols, obj.entryInfo.fullParentDir))}`))
+          .do(obj => logScan(packageCount, obj))
           .groupBy(eiDN => eiDN.devNameVer)
           .mergeMap(group => {
             return group.reduce((acc, eiDN) => {
@@ -180,18 +180,13 @@ export function scanAndLink(rootDirs, config, rtenv) {
             0
           )
           .do(savedBytes => { rtenv.savedByteCount = savedBytes; })
-          .do(savedBytes => {
-            const verb = (config.dryrun) ? 'checking:' : 'linking:';
-            const saved = (config.dryrun) ? 'would save:' : 'saved:';
-            rtenv.log(`${chalk.bold(verb)} ${calcPerc(completedModules, packageCount)}% ${chalk.green(saved)} ${chalk.bold(formatBytes(savedBytes))}`);
-          });
-
+          .do(savedBytes => logLinking(completedModules, packageCount, savedBytes));
 
   function determineModLinkSrcDst([dnv, arrPackEI]) { // ret obs of srcDstObj
     if (rtenv.cancelled) { return Observable.never(); }
 
     return findExistingMaster(dnv, arrPackEI)
-    // if no master found, then use first in arrPackEI
+      // if no master found, then use first in arrPackEI
       .map(masterEI => masterEI || arrPackEI[0])
       .takeWhile(() => !rtenv.cancelled)
       .mergeMap(masterEI =>
@@ -349,8 +344,6 @@ export function scanAndLink(rootDirs, config, rtenv) {
                        ((x.dstEI) &&
                         // take only non-package.json, existingShares uses
                         (x.dstEI.stat.ino !== dstPackInode) &&
-                        // big enough to care about
-                        (x.dstEI.stat.size >= config.minSize) &&
                         // make sure not same inode as master
                         (x.srcEI.stat.ino !== x.dstEI.stat.ino) &&
                         // same device
@@ -359,7 +352,9 @@ export function scanAndLink(rootDirs, config, rtenv) {
                         (x.srcEI.stat.size === x.dstEI.stat.size) &&
                         // same modified datetime
                         (x.srcEI.stat.mtime.getTime() ===
-                          x.dstEI.stat.mtime.getTime())
+                          x.dstEI.stat.mtime.getTime()) &&
+                        // big enough to care about
+                        (x.dstEI.stat.size >= config.minSize)
                        )
                      );
   }
