@@ -19,6 +19,7 @@ const rtenv = {
   completedModules: 0,
   existingPackRefs: {},
   log: noopLog,
+  updatedPackRefs: {},
   out: noop,
   packageCount: 0,
   savedByteCount: 0

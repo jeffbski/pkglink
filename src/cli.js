@@ -124,7 +124,6 @@ const startingDirs = argv._.map(x => Path.resolve(x));
 
 // key=nameVersion value: array of ref tuples [modPath, packJsonInode, packJsonMTimeEpoch]
 rtenv.existingPackRefs = fs.readJsonSync(config.refsFile, { throws: false }) || {};
-const origExistingPackRefs = rtenv.existingPackRefs; // keep ref copy
 
 
 rtenv.cancelled$ = new ReplaySubject();
@@ -170,9 +169,14 @@ const finalTasks = R.once(() => {
     out(`# ${chalk.yellow('would save:')} ${chalk.bold(formatBytes(rtenv.savedByteCount))}`);
     return;
   }
-  if (rtenv.existingPackRefs !== origExistingPackRefs) {
-    const sortedExistingShares = sortObjKeys(rtenv.existingPackRefs);
-    fs.outputJsonSync(config.refsFile, sortedExistingShares);
+  if (argv.prune || Object.keys(rtenv.updatedPackRefs).length) {
+    const sortedExistingPackRefs = sortObjKeys(
+      R.merge(
+        rtenv.existingPackRefs,
+        rtenv.updatedPackRefs
+      )
+    );
+    fs.outputJsonSync(config.refsFile, sortedExistingPackRefs);
     out(`updated ${config.refsFile}`);
   }
   if (rtenv.savedByteCount) {

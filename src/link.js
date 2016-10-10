@@ -24,7 +24,7 @@ export function handleModuleLinking(config, rtenv, lnkModSrcDst) { // returns ob
     );
 }
 
-export function determineLinks(config, rtenv, lnkModSrcDst, updateExistingShares = false) { // returns observable of fileSrcAndDstEIs
+export function determineLinks(config, rtenv, lnkModSrcDst, updatePackRefs = false) { // returns observable of fileSrcAndDstEIs
   // src is the master we link from, dst is the dst link
   const devNameVer = lnkModSrcDst.devNameVer; // device:nameVersion
   const srcRoot = lnkModSrcDst.src;
@@ -34,19 +34,14 @@ export function determineLinks(config, rtenv, lnkModSrcDst, updateExistingShares
   const dstPackInode = lnkModSrcDst.dstPackInode;
   const dstPackMTimeEpoch = lnkModSrcDst.dstPackMTimeEpoch;
 
-  if (updateExistingShares) {
-    const arrWithSrcPackRef = [buildPackRef(srcRoot, srcPackInode, srcPackMTimeEpoch)];
-    const dstPackRef = buildPackRef(dstRoot, dstPackInode, dstPackMTimeEpoch);
-    rtenv.existingPackRefs =
-      R.over(R.lensPath([devNameVer]),
-             // if packRefs is undefined or empty, set to master
-             // then append dst after filtering any previous entry
-             R.pipe(
-               R.defaultTo(arrWithSrcPackRef),
-               R.when(R.propEq('length', 0), R.always(arrWithSrcPackRef)),
-               R.filter(packRef => packRef[0] !== dstRoot),
-               R.append(dstPackRef)),
-             rtenv.existingPackRefs);
+  if (updatePackRefs) {
+    let packRefs = rtenv.updatedPackRefs[devNameVer] || [];
+    if (!packRefs.length) {
+      packRefs.push(buildPackRef(srcRoot, srcPackInode, srcPackMTimeEpoch));
+    }
+    packRefs = packRefs.filter(packRef => packRef[0] !== dstRoot);
+    packRefs.push(buildPackRef(dstRoot, dstPackInode, dstPackMTimeEpoch));
+    rtenv.updatedPackRefs[devNameVer] = packRefs;
   }
 
   const fstream = readdirp({

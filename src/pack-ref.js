@@ -2,7 +2,6 @@ import fs from 'fs-extra-promise';
 import Path from 'path';
 import R from 'ramda';
 import { Observable, Scheduler } from 'rxjs';
-import T from 'timm';
 import { formatDevNameVersion } from './util/format';
 
 export function prune(config, dnvPR) { // return obs of new dnvPR object
@@ -109,9 +108,8 @@ function findExistingMaster(config, rtenv, dnv, arrPackEI) { // returns Obs of m
      to see if any are still valid. Resolve with the first one that is
      still valid, also returning the remaining packRefs. Not all of the
      packRefs will have been checked, just enough to find one valid one.
-     Updates existingPackRefs to new object with updated packRefs if
-     any were invalid.
-     Use prune to go through and clean out all invalid ones.
+     A new array of refs will be updated in rtenv.updatedPackRefs
+     which will omit any found to be invalid.
      Resolves with masterEI or uses first from arrPackEI
    */
 
@@ -132,22 +130,17 @@ function findExistingMaster(config, rtenv, dnv, arrPackEI) { // returns Obs of m
                      if (!masterEI_idx) {
                        // no valid found, use arrPackEI[0]
                        const packEI = arrPackEI[0];
-                       rtenv.existingPackRefs = T.setIn(
-                         rtenv.existingPackRefs,
-                         [dnv],
-                         [buildPackRef(packEI.fullParentDir,
+                       rtenv.updatedPackRefs[dnv] = [
+                         buildPackRef(packEI.fullParentDir,
                                       packEI.stat.ino,
-                                      packEI.stat.mtime.getTime())]
-                       );
+                                      packEI.stat.mtime.getTime())
+                       ];
                        return packEI;
-                     } else if (masterEI_idx[1] !== 0) {
+                     } else {
                        const idx = masterEI_idx[1];
                        // wasn't first one so needs slicing
-                       rtenv.existingPackRefs = T.setIn(
-                         rtenv.existingPackRefs,
-                         [dnv],
-                         masterPackRefs.slice(idx)
-                       );
+                       rtenv.updatedPackRefs[dnv] =
+                         masterPackRefs.slice(idx);
                      }
                      return masterEI_idx[0];
                    });

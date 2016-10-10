@@ -37,8 +37,7 @@
     "rxjs": "^5.0.0-beta.12",
     "show-terminal-cursor": "0.0.2",
     "single-line-log": "^1.1.2",
-    "strip-ansi": "^3.0.1",
-    "timm": "^1.0.0"
+    "strip-ansi": "^3.0.1"
   },
   "devDependencies": {
     "babel-cli": "^6.16.0",
