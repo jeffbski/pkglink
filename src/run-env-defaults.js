@@ -17,7 +17,7 @@ const rtenv = {
   cancelled: false,
   cancelled$: Observable.never(),
   completedModules: 0,
-  existingShares: {},
+  existingPackRefs: {},
   log: noopLog,
   out: noop,
   packageCount: 0,

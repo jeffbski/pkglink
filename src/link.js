@@ -37,7 +37,7 @@ export function determineLinks(config, rtenv, lnkModSrcDst, updateExistingShares
   if (updateExistingShares) {
     const arrWithSrcPackRef = [buildPackRef(srcRoot, srcPackInode, srcPackMTimeEpoch)];
     const dstPackRef = buildPackRef(dstRoot, dstPackInode, dstPackMTimeEpoch);
-    rtenv.existingShares =
+    rtenv.existingPackRefs =
       R.over(R.lensPath([devNameVer]),
              // if packRefs is undefined or empty, set to master
              // then append dst after filtering any previous entry
@@ -46,7 +46,7 @@ export function determineLinks(config, rtenv, lnkModSrcDst, updateExistingShares
                R.when(R.propEq('length', 0), R.always(arrWithSrcPackRef)),
                R.filter(packRef => packRef[0] !== dstRoot),
                R.append(dstPackRef)),
-             rtenv.existingShares);
+             rtenv.existingPackRefs);
   }
 
   const fstream = readdirp({
@@ -90,7 +90,7 @@ export function determineLinks(config, rtenv, lnkModSrcDst, updateExistingShares
                    .filter(x =>
                      // filter out missing targets
                      ((x.dstEI) &&
-                      // take only non-package.json, existingShares uses
+                      // take only non-package.json, existingPackRefs uses
                       (x.dstEI.stat.ino !== dstPackInode) &&
                       // make sure not same inode as master
                       (x.srcEI.stat.ino !== x.dstEI.stat.ino) &&

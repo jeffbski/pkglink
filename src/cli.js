@@ -123,8 +123,8 @@ fs.ensureFileSync(config.refsFile);
 const startingDirs = argv._.map(x => Path.resolve(x));
 
 // key=nameVersion value: array of ref tuples [modPath, packJsonInode, packJsonMTimeEpoch]
-rtenv.existingShares = fs.readJsonSync(config.refsFile, { throws: false }) || {};
-const origExistingShares = rtenv.existingShares; // keep ref copy
+rtenv.existingPackRefs = fs.readJsonSync(config.refsFile, { throws: false }) || {};
+const origExistingPackRefs = rtenv.existingPackRefs; // keep ref copy
 
 
 rtenv.cancelled$ = new ReplaySubject();
@@ -170,8 +170,8 @@ const finalTasks = R.once(() => {
     out(`# ${chalk.yellow('would save:')} ${chalk.bold(formatBytes(rtenv.savedByteCount))}`);
     return;
   }
-  if (rtenv.existingShares !== origExistingShares) {
-    const sortedExistingShares = sortObjKeys(rtenv.existingShares);
+  if (rtenv.existingPackRefs !== origExistingPackRefs) {
+    const sortedExistingShares = sortObjKeys(rtenv.existingPackRefs);
     fs.outputJsonSync(config.refsFile, sortedExistingShares);
     out(`updated ${config.refsFile}`);
   }
@@ -194,8 +194,8 @@ if (argv.prune) {
   arrTaskObs.push(
     Observable.of('pruning')
               .do(() => log(`${chalk.bold('pruning...')}`))
-              .mergeMap(() => prune(config, rtenv.existingShares)
-                .do(newShares => { rtenv.existingShares = newShares; }))
+              .mergeMap(() => prune(config, rtenv.existingPackRefs)
+                .do(newShares => { rtenv.existingPackRefs = newShares; }))
   );
 }
 if (startingDirs.length) {

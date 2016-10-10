@@ -105,18 +105,18 @@ function isEISameInode(firstEI, secondEI) {
 
 function findExistingMaster(config, rtenv, dnv, arrPackEI) { // returns Obs of masterEI_packRefs (or none)
   /*
-     we will be checking through the rtenv.existingShares[dnv] packRefs
+     we will be checking through the rtenv.existingPackRefs[dnv] packRefs
      to see if any are still valid. Resolve with the first one that is
      still valid, also returning the remaining packRefs. Not all of the
      packRefs will have been checked, just enough to find one valid one.
-     Updates existingShares to new object with updated packRefs if
+     Updates existingPackRefs to new object with updated packRefs if
      any were invalid.
      Use prune to go through and clean out all invalid ones.
      Resolves with masterEI or uses first from arrPackEI
    */
 
-  // check rtenv.existingShares[dnv] for ref tuples
-  const masterPackRefs = R.pathOr([], [dnv], rtenv.existingShares); // array of [modDir, packInode, packMTimeEpoch] packRef tuples
+  // check rtenv.existingPackRefs[dnv] for ref tuples
+  const masterPackRefs = R.pathOr([], [dnv], rtenv.existingPackRefs); // array of [modDir, packInode, packMTimeEpoch] packRef tuples
 
   return Observable.from(masterPackRefs)
                    .mergeMap(
@@ -132,8 +132,8 @@ function findExistingMaster(config, rtenv, dnv, arrPackEI) { // returns Obs of m
                      if (!masterEI_idx) {
                        // no valid found, use arrPackEI[0]
                        const packEI = arrPackEI[0];
-                       rtenv.existingShares = T.setIn(
-                         rtenv.existingShares,
+                       rtenv.existingPackRefs = T.setIn(
+                         rtenv.existingPackRefs,
                          [dnv],
                          [buildPackRef(packEI.fullParentDir,
                                       packEI.stat.ino,
@@ -143,8 +143,8 @@ function findExistingMaster(config, rtenv, dnv, arrPackEI) { // returns Obs of m
                      } else if (masterEI_idx[1] !== 0) {
                        const idx = masterEI_idx[1];
                        // wasn't first one so needs slicing
-                       rtenv.existingShares = T.setIn(
-                         rtenv.existingShares,
+                       rtenv.existingPackRefs = T.setIn(
+                         rtenv.existingPackRefs,
                          [dnv],
                          masterPackRefs.slice(idx)
                        );
