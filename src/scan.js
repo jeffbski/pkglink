@@ -39,13 +39,12 @@ export default function scanAndLink(config, rtenv, rootDirs) {
       config.concurrentOps
     )
     .scan(
-      (acc, x) => {
-        acc += x.srcEI.stat.size;
+      (acc, [src, dst, size]) => {
+        acc += size;
         return acc;
       },
       0
     )
     .do(savedBytes => { rtenv.savedByteCount = savedBytes; })
     .do(savedBytes => logLinking(rtenv.completedModules, rtenv.packageCount, savedBytes));
-
 }
