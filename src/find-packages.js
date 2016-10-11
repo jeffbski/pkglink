@@ -1,5 +1,6 @@
 import fs from 'fs-extra-promise';
 import Path from 'path';
+import R from 'ramda';
 import readdirp from 'readdirp';
 import { Observable } from 'rxjs';
 import { createLogScan } from './util/log';
@@ -58,7 +59,7 @@ export default function findPackagesGrouped(config, rtenv, rootDirs) { // ret ob
                    .mergeMap(
                      ei => Observable.from(fs.readJsonAsync(ei.fullPath, { throws: false })),
                      (ei, pack) => ({ // returns eiDN
-                       entryInfo: ei,
+                       entryInfo: truncEI(ei),
                        devNameVer: (pack && pack.name && pack.version) ?
                                    formatDevNameVersion(ei.stat.dev, pack.name, pack.version) :
                                    null
@@ -77,4 +78,11 @@ export default function findPackagesGrouped(config, rtenv, rootDirs) { // ret ob
                      .map(arrEI => [group.key, arrEI]); // [devNameVer, arrPackEI]
                    });
 
+}
+
+/*
+  Truncate entryInfo to just fullParentDir and stat to save memory
+ */
+function truncEI(ei) {
+  return R.pick(['fullParentDir', 'stat'], ei);
 }
