@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import 'node-sigint';  // enable SIGINT on windows
 import chalk from 'chalk';
 import fs from 'fs-extra-promise';
