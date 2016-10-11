@@ -48,7 +48,7 @@ const argvSchema = Joi.object({
   size: Joi.number().integer().min(0),
   'tree-depth': Joi.number().integer().min(0)
 })
-                      .unknown();
+.unknown();
 
 
 const argvVResult = Joi.validate(argv, argvSchema);
