@@ -85,7 +85,7 @@ export function determineLinks(config, rtenv, lnkModSrcDst, updatePackRefs = fal
                    .filter(x =>
                      // filter out missing targets
                      ((x.dstEI) &&
-                      // take only non-package.json, existingPackRefs uses
+                      // take only non-package.json
                       (x.dstEI.stat.ino !== dstPackInode) &&
                       // make sure not same inode as master
                       (x.srcEI.stat.ino !== x.dstEI.stat.ino) &&
