@@ -59,9 +59,9 @@ export default function findPackagesGrouped(config, rtenv, rootDirs) { // ret ob
                      ei => Observable.from(fs.readJsonAsync(ei.fullPath, { throws: false })),
                      (ei, pack) => ({ // returns eiDN
                        entryInfo: ei,
-                                      devNameVer: (pack && pack.name && pack.version) ?
-                                                  formatDevNameVersion(ei.stat.dev, pack.name, pack.version) :
-                                                  null
+                       devNameVer: (pack && pack.name && pack.version) ?
+                                   formatDevNameVersion(ei.stat.dev, pack.name, pack.version) :
+                                   null
                      }),
                      config.concurrentOps
                    )
@@ -74,7 +74,7 @@ export default function findPackagesGrouped(config, rtenv, rootDirs) { // ret ob
                        acc.push(eiDN.entryInfo);
                        return acc;
                      }, [])
-                                 .map(arrEI => [group.key, arrEI]); // [devNameVer, arrPackEI]
+                     .map(arrEI => [group.key, arrEI]); // [devNameVer, arrPackEI]
                    });
 
 }
