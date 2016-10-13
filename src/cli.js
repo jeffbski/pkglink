@@ -2,14 +2,12 @@
 import 'node-sigint';  // enable SIGINT on windows
 import chalk from 'chalk';
 import fs from 'fs-extra-promise';
-import hideCursor from 'hide-terminal-cursor';
 import Joi from 'joi';
 import minimist from 'minimist';
 import OS from 'os';
 import Path from 'path';
 import R from 'ramda';
 import { Observable, ReplaySubject, Subject } from 'rxjs';
-import showCursor from 'show-terminal-cursor';
 import SingleLineLog from 'single-line-log';
 import stripAnsi from 'strip-ansi';
 import { formatBytes, sortObjKeys } from './util/format';
@@ -162,11 +160,9 @@ const cancel = R.once(() => {
   rtenv.cancelled = true;
   rtenv.cancelled$.next(true);
   console.error('cancelling and saving state...');
-  if (isTermOut) { showCursor(); }
 });
 const finalTasks = R.once(() => {
   singleLineLog$.complete();
-  if (isTermOut) { showCursor(); }
   if (argv.dryrun || argv['gen-ln-cmds']) {
     out(`# ${chalk.yellow('would save:')} ${chalk.bold(formatBytes(rtenv.savedByteCount))}`);
     return;
@@ -191,7 +187,6 @@ process
   .once('SIGTERM', cancel)
   .once('EXIT', finalTasks);
 
-if (isTermOut) { hideCursor(); } // show on exit
 out(''); // advance to full line
 
 // Main program start, create task$ and run
