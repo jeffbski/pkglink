@@ -8,6 +8,17 @@ import findPackages from './find-packages';
 export default function scanAndLink(config, rtenv, rootDirs) {
   const logUpdate = createLogUpdate(config, rtenv);
 
+  const outputSrcDstForDryrun = (config.dryrun) ?
+                                lnkSrcDst => {
+      const { devNameVer: dnv, src, dst } = lnkSrcDst;
+      rtenv.log.clear();
+      rtenv.out(chalk.bold(dnv.split(':')[0])); // nameVersion
+      rtenv.out(`  ${src}`);
+      rtenv.out(`  ${dst}`);
+      rtenv.out('');
+    } :
+    () => {};
+
   return findPackages(config, rtenv, rootDirs, logUpdate)
     .takeWhile(() => !rtenv.cancelled)
     .mergeMap(
@@ -15,6 +26,7 @@ export default function scanAndLink(config, rtenv, rootDirs) {
       config.concurrentOps
     )
     .takeWhile(() => !rtenv.cancelled)
+    .do(lnkSrcDst => outputSrcDstForDryrun(lnkSrcDst))
     .do(lnkSrcDst => {
       rtenv.currentPackageDir = lnkSrcDst.dst;
       logUpdate();
@@ -30,6 +42,7 @@ export default function scanAndLink(config, rtenv, rootDirs) {
       },
       config.concurrentOps
     )
+
     .scan(
       (acc, [src, dst, size]) => {
         acc += size;
