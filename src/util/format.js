@@ -15,7 +15,8 @@ export function formatBytes(bytes) {
 }
 
 export function formatDevNameVersion(dev, name, version) {
-  return `${dev}:${name}-${version}`;
+  // use name-version first since device is usually constant
+  return `${name}-${version}:${dev}`;
 }
 
 export function sortObjKeys(obj) {

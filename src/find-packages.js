@@ -3,7 +3,6 @@ import Path from 'path';
 import R from 'ramda';
 import readdirp from 'readdirp';
 import { Observable } from 'rxjs';
-import { createLogScan } from './util/log';
 import { formatDevNameVersion } from './util/format';
 
 const ENDS_NODE_MOD_RE = /[\\\/]node_modules$/;
@@ -28,9 +27,7 @@ function filterDirsNodeModPacks(ei) {
   return true; // not in node_modules yet, so keep walking
 }
 
-export default function findPackagesGrouped(config, rtenv, rootDirs) { // ret obs of ei
-  const logScan = createLogScan(config, rtenv);
-
+export default function findPackages(config, rtenv, rootDirs, logUpdate) { // ret obs of eiDN
   return Observable.from(rootDirs)
   // find all package.json files
                    .mergeMap(
@@ -67,17 +64,11 @@ export default function findPackagesGrouped(config, rtenv, rootDirs) { // ret ob
                      config.concurrentOps
                    )
                    .filter(obj => obj.devNameVer) // has name and version, not null
-                   .do(obj => { rtenv.packageCount += 1; })
-                   .do(obj => logScan(rtenv.packageCount, obj))
-                   .groupBy(eiDN => eiDN.devNameVer)
-                   .mergeMap(group => {
-                     return group.reduce((acc, eiDN) => {
-                       acc.push(eiDN.entryInfo);
-                       return acc;
-                     }, [])
-                     .map(arrEI => [group.key, arrEI]); // [devNameVer, arrPackEI]
-                   });
-
+                   .do(obj => {
+                     rtenv.packageCount += 1;
+                     rtenv.currentPackageDir = obj.entryInfo.fullParentDir;
+                   })
+                   .do(obj => { logUpdate(); });
 }
 
 /*

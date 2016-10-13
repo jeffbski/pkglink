@@ -1,32 +1,24 @@
 import chalk from 'chalk';
-import { createLogOnceChecking, createLogLinking } from './util/log';
+import { createLogUpdate } from './util/log';
 import { genModuleLinks, handleModuleLinking,
          determineLinks } from './link';
-import { determinePackLinkSrcDst } from './pack-ref';
-import findPackagesGrouped from './find-packages';
+import { determinePackLinkSrcDst, buildPackRef } from './pack-ref';
+import findPackages from './find-packages';
 
 export default function scanAndLink(config, rtenv, rootDirs) {
-  const logOnceChecking = createLogOnceChecking(rtenv);
-  const logLinking = createLogLinking(config, rtenv);
+  const logUpdate = createLogUpdate(config, rtenv);
 
-  return findPackagesGrouped(config, rtenv, rootDirs)
-    .do(dnv_packEIs => { // if dryrun, output the module and shared paths
-      if (config.dryrun) {
-        rtenv.log.clear();
-        const [dnv, packEIs] = dnv_packEIs;
-        if (rtenv.cancelled) { return; }
-        rtenv.out(chalk.bold(dnv.split(':')[1])); // nameVersion
-        packEIs.forEach(pEI => rtenv.out(`  ${pEI.fullParentDir}`));
-        rtenv.out('');
-      }
-    })
+  return findPackages(config, rtenv, rootDirs, logUpdate)
     .takeWhile(() => !rtenv.cancelled)
-    .do(() => { logOnceChecking(); })
     .mergeMap(
-      dnv_p => determinePackLinkSrcDst(config, rtenv, dnv_p),
+      eiDN => determinePackLinkSrcDst(config, rtenv, eiDN),
       config.concurrentOps
     )
     .takeWhile(() => !rtenv.cancelled)
+    .do(lnkSrcDst => {
+      rtenv.currentPackageDir = lnkSrcDst.dst;
+      logUpdate();
+    })
     .mergeMap(
       lnkSrcDst => {
         if (config.dryrun) {
@@ -46,5 +38,5 @@ export default function scanAndLink(config, rtenv, rootDirs) {
       0
     )
     .do(savedBytes => { rtenv.savedByteCount = savedBytes; })
-    .do(savedBytes => logLinking(rtenv.completedModules, rtenv.packageCount, savedBytes));
+    .do(savedBytes => logUpdate());
 }

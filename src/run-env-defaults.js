@@ -17,6 +17,7 @@ const rtenv = {
   cancelled: false,
   cancelled$: Observable.never(),
   completedModules: 0,
+  currentPackageDir: '',
   existingPackRefs: {},
   log: noopLog,
   updatedPackRefs: {},

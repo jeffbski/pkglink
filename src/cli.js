@@ -82,6 +82,7 @@ const configSchema = Joi.object({
   concurrentOps: Joi.number().integer().min(1).default(4),
   minSize: Joi.number().integer().min(0).default(0),
   treeDepth: Joi.number().integer().min(0).default(0),
+  refSize: Joi.number().integer().min(1).default(5),
   consoleWidth: Joi.number().integer().min(30).default(70)
 });
 
@@ -108,7 +109,7 @@ R.toPairs({ // for these defined argv values override config
     config[k] = v;
   }
 });
-config.extraCols = config.consoleWidth - 20;
+config.extraCols = config.consoleWidth - 30;
 
 if (argv.help || (!argv._.length && !argv.prune)) { // display help
   displayHelp();

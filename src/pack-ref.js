@@ -1,5 +1,6 @@
 import fs from 'fs-extra-promise';
 import Path from 'path';
+import Prom from 'bluebird';
 import R from 'ramda';
 import { Observable, Scheduler } from 'rxjs';
 import { formatDevNameVersion } from './util/format';
@@ -71,29 +72,45 @@ export function verifyPackRef(dnv, packRef, returnEI = false) { // return obs of
                    .filter(x => x); // filter any undefineds, those were invalid
 }
 
-export function determinePackLinkSrcDst(config, rtenv, [dnv, arrPackEI]) { // ret obs of srcDstObj
-  if (rtenv.cancelled) { return Observable.never(); }
+const masterEICache = { };
 
-  return findExistingMaster(config, rtenv, dnv, arrPackEI)
-  // if no master found, then use first in arrPackEI
-    .map(masterEI => masterEI || arrPackEI[0])
+function checkMasterCache(config, rtenv, dnv, packEI) { // ret obs of masterEI
+  const masterEI = masterEICache[dnv];
+  if (masterEI) {
+    if (!masterEI.then) { // it is not a promise
+      return Observable.of(masterEI);
+    }
+    // otherwise it was a promise
+    return Observable.fromPromise(masterEI);
+  }
+  // otherwise not found
+  const masterEIProm = findExistingMaster(config, rtenv, dnv, packEI);
+  masterEICache[dnv] = masterEIProm;
+  // optimize future requests so they don't need to hit promise
+  masterEIProm
+    .then(masterEI => {
+      masterEICache[dnv] = masterEI; // eliminate promise overhead
+    });
+  return Observable.fromPromise(masterEIProm);
+}
+
+
+export function determinePackLinkSrcDst(config, rtenv, destEIdn) { // ret obs of srcDstObj
+  if (rtenv.cancelled) { return Observable.never(); }
+  const { entryInfo: dstEI, devNameVer: dnv } = destEIdn;
+
+  return checkMasterCache(config, rtenv, dnv, dstEI)
     .takeWhile(() => !rtenv.cancelled)
-    .mergeMap(masterEI =>
-      // use asap scheduler to prevent stack from being exceeded
-      Observable.from(arrPackEI, Scheduler.asap)
-                .takeWhile(() => !rtenv.cancelled)
-                .filter(dstEI => !isEISameInode(masterEI, dstEI))
-                .map(dstEI => ({
-                  devNameVer: dnv, // device:nameVersion
-                  src: masterEI.fullParentDir,
-                  srcPackInode: masterEI.stat.ino,
-                  srcPackMTimeEpoch: masterEI.stat.mtime.getTime(),
-                  dst: dstEI.fullParentDir,
-                  dstPackInode: dstEI.stat.ino,
-                  dstPackMTimeEpoch: dstEI.stat.mtime.getTime()
-                })),
-              config.concurrentOps
-    );
+    .filter(masterEI => !isEISameInode(masterEI, dstEI))
+    .map(masterEI => ({
+      devNameVer: dnv, // device:nameVersion
+      src: masterEI.fullParentDir,
+      srcPackInode: masterEI.stat.ino,
+      srcPackMTimeEpoch: masterEI.stat.mtime.getTime(),
+      dst: dstEI.fullParentDir,
+      dstPackInode: dstEI.stat.ino,
+      dstPackMTimeEpoch: dstEI.stat.mtime.getTime()
+    }));
 }
 
 function isEISameInode(firstEI, secondEI) {
@@ -101,8 +118,14 @@ function isEISameInode(firstEI, secondEI) {
           (firstEI.stat.ino === secondEI.stat.ino));
 }
 
+// prepare for this to be async
+function getExistingPackRefs(config, rtenv, dnv) { // returns observable to arrPackRefs
+  // check rtenv.existingPackRefs[dnv] for ref tuples
+  const masterPackRefs = R.pathOr([], [dnv], rtenv.existingPackRefs); // array of [modDir, packInode, packMTimeEpoch] packRef tuples
+  return Observable.of(masterPackRefs);
+}
 
-function findExistingMaster(config, rtenv, dnv, arrPackEI) { // returns Obs of masterEI_packRefs (or none)
+function findExistingMaster(config, rtenv, dnv, ei) { // returns promise resolving to masterEI
   /*
      we will be checking through the rtenv.existingPackRefs[dnv] packRefs
      to see if any are still valid. Resolve with the first one that is
@@ -110,38 +133,47 @@ function findExistingMaster(config, rtenv, dnv, arrPackEI) { // returns Obs of m
      packRefs will have been checked, just enough to find one valid one.
      A new array of refs will be updated in rtenv.updatedPackRefs
      which will omit any found to be invalid.
-     Resolves with masterEI or uses first from arrPackEI
+     Resolves with masterEI or uses ei provided
    */
-
-  // check rtenv.existingPackRefs[dnv] for ref tuples
-  const masterPackRefs = R.pathOr([], [dnv], rtenv.existingPackRefs); // array of [modDir, packInode, packMTimeEpoch] packRef tuples
-
-  return Observable.from(masterPackRefs)
-                   .mergeMap(
-                     packRef => verifyPackRef(dnv, packRef, true),
-                     1 // one at a time since only need first
-                   )
-                   .first(
-                     masterEI => masterEI, // exists
-                     (masterEI, idx) => [masterEI, idx],
-                     null
-                   )
-                   .map(masterEI_idx => {
-                     if (!masterEI_idx) {
-                       // no valid found, use arrPackEI[0]
-                       const packEI = arrPackEI[0];
-                       rtenv.updatedPackRefs[dnv] = [
-                         buildPackRef(packEI.fullParentDir,
-                                      packEI.stat.ino,
-                                      packEI.stat.mtime.getTime())
-                       ];
-                       return packEI;
-                     } else {
-                       const idx = masterEI_idx[1];
-                       // wasn't first one so needs slicing
-                       rtenv.updatedPackRefs[dnv] =
-                         masterPackRefs.slice(idx);
-                     }
-                     return masterEI_idx[0];
-                   });
+  return getExistingPackRefs(config, rtenv, dnv)
+    .mergeMap(masterPackRefs => {
+      if (!masterPackRefs.length) {
+        // no valid found, set to empty []
+        rtenv.updatedPackRefs[dnv] = [
+          buildPackRef(ei.fullParentDir,
+                       ei.stat.ino,
+                       ei.stat.mtime.getTime())
+        ];
+        return Observable.of(ei);
+      }
+      // otherwise we have packrefs check them
+      return Observable.from(masterPackRefs)
+                       .mergeMap(
+                         packRef => verifyPackRef(dnv, packRef, true),
+                         1 // one at a time since only need first
+                       )
+                       .first(
+                         masterEI => masterEI, // exists
+                         (masterEI, idx) => [masterEI, idx],
+                         false
+                       )
+                       .map(masterEI_idx => {
+                         if (!masterEI_idx) {
+                           // no valid found, set to empty []
+                           rtenv.updatedPackRefs[dnv] = [
+                             buildPackRef(ei.fullParentDir,
+                                          ei.stat.ino,
+                                          ei.stat.mtime.getTime())
+                           ];
+                           return ei;
+                         }
+                         const idx = masterEI_idx[1];
+                         // wasn't first one so needs slicing
+                         rtenv.updatedPackRefs[dnv] =
+                           masterPackRefs.slice(idx);
+                         const masterEI = masterEI_idx[0];
+                         return masterEI;
+                       });
+    })
+    .toPromise(Prom);
 }
