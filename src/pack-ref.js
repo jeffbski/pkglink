@@ -96,7 +96,7 @@ function checkMasterCache(config, rtenv, dnv, packEI) { // ret obs of masterEI
 
 
 export function determinePackLinkSrcDst(config, rtenv, destEIdn) { // ret obs of srcDstObj
-  if (rtenv.cancelled) { return Observable.never(); }
+  if (rtenv.cancelled) { return Observable.empty(); }
   const { entryInfo: dstEI, devNameVer: dnv } = destEIdn;
 
   return checkMasterCache(config, rtenv, dnv, dstEI)
