@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "",
   "main": "build-lib/index.js",
-  "bin": "build-lib/cli.js",
+  "bin": "bin/pkglink.js",
   "scripts": {
     "clean": "mkdirp build-lib && rimraf build-lib/*",
     "build": "cross-env BABEL_ENV=commonjs babel -q src --out-dir build-lib",
@@ -29,7 +29,6 @@
     "fs-extra-promise": "^0.4.1",
     "joi": "^9.1.0",
     "minimist": "^1.2.0",
-    "node-sigint": "0.0.1",
     "numeral": "^1.5.3",
     "ramda": "^0.22.1",
     "read-package-tree": "^5.1.5",

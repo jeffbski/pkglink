@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-import 'node-sigint';  // enable SIGINT on windows
 import chalk from 'chalk';
 import fs from 'fs-extra-promise';
 import Joi from 'joi';
@@ -14,6 +12,10 @@ import { formatBytes, sortObjKeys } from './util/format';
 import { safeJsonReadSync, outputFileStderrSync } from './util/file';
 import defaultRTEnv from './run-env-defaults';
 import { prune, scanAndLink } from './index';
+import managed from './util/managed';
+
+console.log('total-memory:', OS.totalmem());
+console.log('free-memory:', OS.freemem());
 
 const isTTY = process.stdout.isTTY; // truthy if in terminal
 const singleLineLog = SingleLineLog.stderr;
@@ -126,7 +128,7 @@ const startingDirs = argv._.map(x => Path.resolve(x));
 rtenv.existingPackRefs = fs.readJsonSync(config.refsFile, { throws: false }) || {};
 
 
-rtenv.cancelled$ = new ReplaySubject();
+rtenv.cancelled$ = new ReplaySubject(1);
 
 const singleLineLog$ = new Subject();
 singleLineLog$
@@ -165,7 +167,7 @@ const finalTasks = R.once(() => {
   singleLineLog$.complete();
   if (argv.dryrun || argv['gen-ln-cmds']) {
     out(`# ${chalk.yellow('would save:')} ${chalk.bold(formatBytes(rtenv.savedByteCount))}`);
-    return;
+    return managed.shutdown();
   }
   if (argv.prune || Object.keys(rtenv.updatedPackRefs).length) {
     const sortedExistingPackRefs = sortObjKeys(
@@ -180,11 +182,11 @@ const finalTasks = R.once(() => {
   if (rtenv.savedByteCount) {
     out(`${chalk.green('saved:')} ${chalk.bold(formatBytes(rtenv.savedByteCount))}`);
   }
+  managed.shutdown();
 });
 
+managed.onInterrupt(cancel); // fires on SIGINT
 process
-  .once('SIGINT', cancel)
-  .once('SIGTERM', cancel)
   .once('EXIT', finalTasks);
 
 out(''); // advance to full line

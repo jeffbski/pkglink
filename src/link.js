@@ -49,7 +49,7 @@ export function determineLinks(config, rtenv, lnkModSrcDst, updatePackRefs = fal
     fileFilter: ['!.*'],
     directoryFilter: ['!.*', '!node_modules']
   });
-  fstream.once('end', () => { rtenv.completedModules += 1; });
+  fstream.once('end', () => { rtenv.completedPackages += 1; });
   rtenv.cancelled$.subscribe(() => fstream.destroy()); // stop reading
 
   return Observable.fromEvent(fstream, 'data')
