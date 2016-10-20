@@ -1,7 +1,5 @@
 import chalk from 'chalk';
 import fs from 'fs-extra-promise';
-import Joi from 'joi';
-import minimist from 'minimist';
 import OS from 'os';
 import Path from 'path';
 import R from 'ramda';
@@ -9,11 +7,11 @@ import { Observable, ReplaySubject, Subject } from 'rxjs';
 import SingleLineLog from 'single-line-log';
 import stripAnsi from 'strip-ansi';
 import { formatBytes, sortObjKeys } from './util/format';
-import { safeJsonReadSync, outputFileStderrSync } from './util/file';
+import { outputFileStderrSync } from './util/file';
 import defaultRTEnv from './run-env-defaults';
 import { prune, scanAndLink } from './index';
 import managed from './util/managed';
-import { DEFAULT_CONFIG_FILE, DEFAULT_REFS_FILE } from './constants';
+import gatherOptionsConfig from './cli-options';
 
 const isTTY = process.stdout.isTTY; // truthy if in terminal
 const singleLineLog = SingleLineLog.stderr;
@@ -22,91 +20,10 @@ const rtenv = { // create our copy
   ...defaultRTEnv
 };
 
-const minimistOpts = {
-  boolean: ['d', 'g', 'h', 'p'],
-  string: ['c', 'r'],
-  alias: {
-    c: 'config',
-    d: 'dryrun',
-    g: 'gen-ln-cmds',
-    h: 'help',
-    p: 'prune',
-    r: 'refs-file',
-    s: 'size',
-    t: 'tree-depth'
-  }
-};
-const argv = minimist(process.argv.slice(2), minimistOpts);
-
-const argvSchema = Joi.object({
-  config: Joi.string(),
-  'refs-file': Joi.string(),
-  size: Joi.number().integer().min(0),
-  'tree-depth': Joi.number().integer().min(0)
-})
-.unknown();
-
-
-const argvVResult = Joi.validate(argv, argvSchema);
-if (argvVResult.error) {
-  displayHelp();
-  console.error('');
-  console.error(chalk.red('error: invalid argument specified'));
-  argvVResult.error.details.forEach(err => {
-    console.error(err.message);
-  });
-  process.exit(20);
-}
+const { argv, config } = gatherOptionsConfig(displayHelp);
 
 // should we be using terminal output
 const isTermOut = isTTY && !argv['gen-ln-cmds'];
-
-const CONFIG_PATH = argv.config ||
-      Path.resolve(OS.homedir(), DEFAULT_CONFIG_FILE);
-const parsedConfigJson = safeJsonReadSync(CONFIG_PATH);
-if (parsedConfigJson instanceof Error) {
-  console.error(chalk.red('error: invalid JSON configuration'));
-  console.error(`${chalk.bold('config file:')} ${CONFIG_PATH}`);
-  console.error(parsedConfigJson); // error
-  process.exit(21);
-}
-const unvalidatedConfig = parsedConfigJson || {};
-
-const configSchema = Joi.object({
-  refsFile: Joi.string().default(
-    Path.resolve(OS.homedir(), DEFAULT_REFS_FILE)),
-  concurrentOps: Joi.number().integer().min(1).default(4),
-  memory: Joi.number().integer().min(100).default(2048),
-  minSize: Joi.number().integer().min(0).default(0),
-  treeDepth: Joi.number().integer().min(0).default(0),
-  refSize: Joi.number().integer().min(1).default(5),
-  consoleWidth: Joi.number().integer().min(30).default(70)
-});
-
-const configResult = Joi.validate(unvalidatedConfig, configSchema, { abortEarly: false });
-if (configResult.error) {
-  console.error(chalk.red('error: invalid JSON configuration'));
-  console.error(`${chalk.bold('config file:')} ${CONFIG_PATH}`);
-  configResult.error.details.forEach(err => {
-    console.error(err.message);
-  });
-  process.exit(22);
-}
-const config = configResult.value; // with defaults applied
-R.toPairs({ // for these defined argv values override config
-  dryrun: argv.dryrun,
-  genLnCmds: argv['gen-ln-cmds'],
-  minSize: argv.size,
-  refsFile: argv['refs-file'],
-  treeDepth: argv['tree-depth']
-}).forEach(p => {
-  const k = p[0];
-  const v = p[1];
-  if (!R.isNil(v)) { // if defined, use it
-    config[k] = v;
-  }
-});
-config.extraCols = config.consoleWidth - 30;
 
 if (argv.help || (!argv._.length && !argv.prune)) { // display help
   displayHelp();
@@ -131,6 +48,7 @@ const singleLineLog$ = new Subject();
 singleLineLog$
   .filter(x => isTermOut) // only if in terminal
   .distinctUntilChanged()
+  .throttleTime(100)
   .takeUntil(rtenv.cancelled$)
   .subscribe({
     next: x => singleLineLog(x),
@@ -158,13 +76,14 @@ rtenv.out = out; // share this output fn in the rtenv
 const cancel = R.once(() => {
   rtenv.cancelled = true;
   rtenv.cancelled$.next(true);
-  console.error('cancelling and saving state...');
+  console.error('cancelling...');
 });
 const finalTasks = R.once(() => {
   singleLineLog$.complete();
   if (argv.dryrun || argv['gen-ln-cmds']) {
     out(`# ${chalk.yellow('would save:')} ${chalk.bold(formatBytes(rtenv.savedByteCount))}`);
-    return managed.shutdown();
+    managed.shutdown();
+    return;
   }
   if (argv.prune || Object.keys(rtenv.updatedPackRefs).length) {
     const sortedExistingPackRefs = sortObjKeys(

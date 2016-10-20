@@ -36,9 +36,8 @@ if (!hasExtraMemory) {
 
 // not enough extra memory or already has proper option
 if (!hasExtraMemory || process.execArgv.some(x => x === memoryArg)) {
-  console.log('requiring directly');
   require(script); // already has options invoke directly
-} else { // need to use child to get right options
-  console.log('using child proc');
+} else { // need to use child to get right options, most likely win32
+  console.log('using child process for increased working memory');
   managed(script, options);
 }

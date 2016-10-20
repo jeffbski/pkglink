@@ -48,10 +48,6 @@ Standard Options:
   Specify where to load and store the link refs file which is used to
   quickly locate previously linked modules. Default ~/pkglink_refs.json
 
- -s, --size N
-
-  Minimum file size to link in bytes, default 0
-
  -t, --tree-depth N
 
   Maximum depth to search the directories specified for node modules

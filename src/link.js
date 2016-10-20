@@ -4,6 +4,7 @@ import R from 'ramda';
 import readdirp from 'readdirp';
 import { Observable } from 'rxjs';
 import { buildPackRef } from './pack-ref';
+import linkFilter from './link-filter';
 
 export function genModuleLinks(config, rtenv, lnkModSrcDst) { // returns observable
   return determineLinks(config, rtenv, lnkModSrcDst, true)
@@ -38,7 +39,9 @@ export function determineLinks(config, rtenv, lnkModSrcDst, updatePackRefs = fal
       packRefs.push(buildPackRef(srcRoot, srcPackInode, srcPackMTimeEpoch));
     }
     packRefs = packRefs.filter(packRef => packRef[0] !== dstRoot);
-    packRefs.push(buildPackRef(dstRoot, dstPackInode, dstPackMTimeEpoch));
+    if (packRefs.length < config.refSize) {
+      packRefs.push(buildPackRef(dstRoot, dstPackInode, dstPackMTimeEpoch));
+    }
     rtenv.updatedPackRefs[devNameVer] = packRefs;
   }
 
@@ -80,24 +83,7 @@ export function determineLinks(config, rtenv, lnkModSrcDst, updatePackRefs = fal
                      }),
                      config.concurrentOps
                    )
-                   .filter(x =>
-                     // filter out missing targets
-                     ((x.dstEI) &&
-                      // take only non-package.json
-                      (x.dstEI.stat.ino !== dstPackInode) &&
-                      // make sure not same inode as master
-                      (x.srcEI.stat.ino !== x.dstEI.stat.ino) &&
-                      // same device
-                      (x.srcEI.stat.dev === x.dstEI.stat.dev) &&
-                      // same size
-                      (x.srcEI.stat.size === x.dstEI.stat.size) &&
-                      // same modified datetime
-                      (x.srcEI.stat.mtime.getTime() ===
-                        x.dstEI.stat.mtime.getTime()) &&
-                      // big enough to care about
-                      (x.dstEI.stat.size >= config.minSize)
-                     )
-                   )
+                   .filter(x => linkFilter(config, dstPackInode, x))
                    .map(x => [ // s_d_sz
                      x.srcEI.fullPath,
                      x.dstEI.fullPath,
