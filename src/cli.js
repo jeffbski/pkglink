@@ -12,7 +12,7 @@ import { outputFileStderrSync } from './util/file';
 import defaultRTEnv from './run-env-defaults';
 import { prune, scanAndLink } from './index';
 import managed from './util/managed';
-import gatherOptionsConfig from './cli-options';
+import { gatherOptionsConfig } from './cli-options';
 
 const isTTY = process.stdout.isTTY; // truthy if in terminal
 const singleLineLog = SingleLineLog.stderr;
@@ -21,7 +21,8 @@ const rtenv = { // create our copy
   ...defaultRTEnv
 };
 
-const { argv, config } = gatherOptionsConfig(displayHelp);
+const { argv, config } = gatherOptionsConfig(process.argv.slice(2),
+                                             displayHelp);
 
 // should we be using terminal output
 const isTermOut = isTTY && !argv['gen-ln-cmds'];
