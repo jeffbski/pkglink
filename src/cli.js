@@ -13,15 +13,11 @@ import { safeJsonReadSync, outputFileStderrSync } from './util/file';
 import defaultRTEnv from './run-env-defaults';
 import { prune, scanAndLink } from './index';
 import managed from './util/managed';
-
-console.log('total-memory:', OS.totalmem());
-console.log('free-memory:', OS.freemem());
+import { DEFAULT_CONFIG_FILE, DEFAULT_REFS_FILE } from './constants';
 
 const isTTY = process.stdout.isTTY; // truthy if in terminal
 const singleLineLog = SingleLineLog.stderr;
 
-const DEFAULT_CONFIG_FILE = '.pkglink'; // in home directory
-const DEFAULT_REFS_FILE = '.pkglink_refs'; // in home directory
 const rtenv = { // create our copy
   ...defaultRTEnv
 };
@@ -66,7 +62,7 @@ if (argvVResult.error) {
 const isTermOut = isTTY && !argv['gen-ln-cmds'];
 
 const CONFIG_PATH = argv.config ||
-                    Path.resolve(process.env.HOME, DEFAULT_CONFIG_FILE);
+      Path.resolve(OS.homedir(), DEFAULT_CONFIG_FILE);
 const parsedConfigJson = safeJsonReadSync(CONFIG_PATH);
 if (parsedConfigJson instanceof Error) {
   console.error(chalk.red('error: invalid JSON configuration'));
@@ -78,8 +74,9 @@ const unvalidatedConfig = parsedConfigJson || {};
 
 const configSchema = Joi.object({
   refsFile: Joi.string().default(
-    Path.resolve(process.env.HOME, DEFAULT_REFS_FILE)),
+    Path.resolve(OS.homedir(), DEFAULT_REFS_FILE)),
   concurrentOps: Joi.number().integer().min(1).default(4),
+  memory: Joi.number().integer().min(100).default(2048),
   minSize: Joi.number().integer().min(0).default(0),
   treeDepth: Joi.number().integer().min(0).default(0),
   refSize: Joi.number().integer().min(1).default(5),
@@ -133,7 +130,7 @@ rtenv.cancelled$ = new ReplaySubject(1);
 const singleLineLog$ = new Subject();
 singleLineLog$
   .filter(x => isTermOut) // only if in terminal
-  .distinct()
+  .distinctUntilChanged()
   .takeUntil(rtenv.cancelled$)
   .subscribe({
     next: x => singleLineLog(x),

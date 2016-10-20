@@ -23,6 +23,7 @@ export function verifyDMP([dnv, arrPackRef], config) {  // return obs of valid d
                              concurrentOps)
                    .reduce((acc, packRef) => R.append(packRef, acc),
                            [])
+                   .filter(arrRefEI => arrRefEI.length)
                    .map(arrRefEI => [dnv, arrRefEI]); // dnv_PR
 }
 
