@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import fs from 'fs-extra-promise';
+import numeral from 'numeral';
 import OS from 'os';
 import Path from 'path';
 import R from 'ramda';
@@ -81,7 +82,7 @@ const cancel = R.once(() => {
 const finalTasks = R.once(() => {
   singleLineLog$.complete();
   if (argv.dryrun || argv['gen-ln-cmds']) {
-    out(`# ${chalk.yellow('would save:')} ${chalk.bold(formatBytes(rtenv.savedByteCount))}`);
+    out(`# ${chalk.blue('pkgs:')} ${numeral(rtenv.packageCount).format('0,0')} ${chalk.yellow('would save:')} ${chalk.bold(formatBytes(rtenv.savedByteCount))}`);
     managed.shutdown();
     return;
   }
@@ -93,11 +94,9 @@ const finalTasks = R.once(() => {
       )
     );
     fs.outputJsonSync(config.refsFile, sortedExistingPackRefs);
-    out(`updated ${config.refsFile}`);
+    if (argv.prune) { out(`updated ${config.refsFile}`); }
   }
-  if (rtenv.savedByteCount) {
-    out(`${chalk.green('saved:')} ${chalk.bold(formatBytes(rtenv.savedByteCount))}`);
-  }
+  out(`${chalk.blue('pkgs:')} ${numeral(rtenv.packageCount).format('0,0')} ${chalk.green('saved:')} ${chalk.bold(formatBytes(rtenv.savedByteCount))}`);
   managed.shutdown();
 });
 
@@ -118,7 +117,10 @@ if (argv.prune) {
   );
 }
 if (startingDirs.length) {
-  arrTaskObs.push(scanAndLink(config, rtenv, startingDirs));
+  arrTaskObs.push(
+    Observable.of('scanning')
+      .mergeMap(() => scanAndLink(config, rtenv, startingDirs))
+  );
 }
 
 // run all the task observables serially

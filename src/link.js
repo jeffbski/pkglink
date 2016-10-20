@@ -1,10 +1,19 @@
 import fs from 'fs-extra-promise';
 import Path from 'path';
-import R from 'ramda';
 import readdirp from 'readdirp';
 import { Observable } from 'rxjs';
 import { buildPackRef } from './pack-ref';
 import linkFilter from './link-filter';
+import { createLogUpdate } from './util/log';
+
+/*
+ Default hard link function which unlinks orig dst then creates link
+ @return promise that resolves on success or rejects on failure
+ */
+function hardLink(src, dst) {
+  return fs.unlinkAsync(dst)
+           .then(() => fs.linkAsync(src, dst));
+}
 
 export function genModuleLinks(config, rtenv, lnkModSrcDst) { // returns observable
   return determineLinks(config, rtenv, lnkModSrcDst, true)
@@ -17,13 +26,16 @@ export function genModuleLinks(config, rtenv, lnkModSrcDst) { // returns observa
 export function handleModuleLinking(config, rtenv, lnkModSrcDst) { // returns observable
   return determineLinks(config, rtenv, lnkModSrcDst, true)
     .mergeMap(
-      s_d_sz => performLink(s_d_sz),
+      s_d_sz => performLink(config, rtenv, s_d_sz),
       (s_d_sz, ops) => s_d_sz,
       config.concurrentOps
     );
 }
 
 export function determineLinks(config, rtenv, lnkModSrcDst, updatePackRefs = false) { // returns observable of s_d_sz [srcFullPath, dstFullPath, size]
+
+  const logUpdate = createLogUpdate(config, rtenv);
+
   // src is the master we link from, dst is the dst link
   const devNameVer = lnkModSrcDst.devNameVer; // device:nameVersion
   const srcRoot = lnkModSrcDst.src;
@@ -52,7 +64,10 @@ export function determineLinks(config, rtenv, lnkModSrcDst, updatePackRefs = fal
     fileFilter: ['!.*'],
     directoryFilter: ['!.*', '!node_modules']
   });
-  fstream.once('end', () => { rtenv.completedPackages += 1; });
+  fstream.once('end', () => {
+    rtenv.completedPackages += 1;
+    logUpdate();
+  });
   rtenv.cancelled$.subscribe(() => fstream.destroy()); // stop reading
 
   return Observable.fromEvent(fstream, 'data')
@@ -92,14 +107,13 @@ export function determineLinks(config, rtenv, lnkModSrcDst, updatePackRefs = fal
 }
 
 
-function performLink([src, dst, size]) {  // returns observable
-  return Observable.from(
-    fs.unlinkAsync(dst)
-      .then(() => fs.linkAsync(src,
-                               dst))
-      .catch(err => {
-        console.error(`failed to unlink/link src:${src} dst:${dst}`, err);
-        throw err;
-      })
+function performLink(config, rtenv, [src, dst, size]) {  // returns observable
+  const link = rtenv.linkFn || hardLink; // use custom link if provided
+  return Observable.fromPromise(
+      link(src, dst)
+        .catch(err => {
+          console.error(`failed to unlink/link src:${src} dst:${dst}`, err);
+          throw err;
+        })
   );
 }

@@ -19,6 +19,7 @@ const rtenv = {
   completedPackages: 0,
   currentPackageDir: '',
   existingPackRefs: {},
+  linkFn: null, // alternate linking promise fn
   log: noopLog,
   updatedPackRefs: {},
   out: noop,
