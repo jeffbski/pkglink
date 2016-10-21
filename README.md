@@ -1,0 +1,70 @@
+# pkglink
+
+## Usage
+
+```
+Usage: pkglink {OPTIONS} [dir] [dirN]
+
+Description:
+
+     pkglink - Node.js package hard linker
+
+     pkglink recursively searches directories for Node.js packages
+     installed in node_modules directories. It uses the package name
+     and version to match up possible packages to share. Once it finds
+     similar packages, pkglink walks through the package directory tree
+     checking for files that can be linked. If each file's modified
+     datetime and size match, it will create a hard link for that file
+     to save disk space.
+
+     It keeps track of modules linked in ~/.pkglink_refs to quickly
+     locate similar modules on future runs. The refs are always
+     double checked before being considered for linking. This makes
+     it convenient to perform future pkglink runs on new directories
+     without having to reprocess the old.
+
+Standard Options:
+
+ -c, --config CONFIG_PATH
+
+  This option overrides the config file path, default ~/.pkglink
+
+ -d, --dryrun
+
+  Instead of performing the linking, just display the modules that
+  would be linked and the amount of disk space that would be saved.
+
+ -g, --gen-ln-cmds
+
+  Instead of performing the linking, just generate link commands
+  that the system would perform and output
+
+ -h, --help
+
+  Show this message
+
+ -m, --memory MEMORY_MB
+
+  Run with increased or decreased memory specified in MB, overrides
+  environment variable PKGLINK_NODE_OPTIONS and config.memory
+  The default memory used is 2560.
+
+ -p, --prune
+
+  Prune the refs file by checking all of the refs clearing out any
+  that have changed
+
+ -r, --refs-file REFS_FILE_PATH
+
+  Specify where to load and store the link refs file which is used to
+  quickly locate previously linked modules. Default ~/pkglink_refs.json
+
+ -t, --tree-depth N
+
+  Maximum depth to search the directories specified for node modules
+  Default depth: 0 (unlimited)
+
+ -v, --verbose
+
+  Output additional information helpful for debugging
+```
