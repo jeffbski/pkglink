@@ -20,6 +20,7 @@
     "test": "run-s test:*",
     "test:cli-basic-direct": "cd fixtures && bash cli-test-basic.bash \"../bin/pkglink.js\"",
     "test:cli-basic-node": "cd fixtures && bash cli-test-basic.bash \"node ../bin/pkglink.js\"",
+    "test:cli-basic-low": "cd fixtures && bash cli-test-basic.bash \"../build-lib/cli.js\"",
     "test:mocha": "cross-env BABEL_ENV=test mocha --compilers js:babel-register \"src/**/*.mocha.js*\"",
     "watch": "run-p -c watch:*",
     "watch:babel": "npm run build -- -w",
