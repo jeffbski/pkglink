@@ -5,6 +5,11 @@ set -x
 
 # cwd should be here in fixtures
 
+# make sure foo1 is npm installed
+pushd projects/foo1
+npm install
+popd
+
 # single dir runs
 rimraf projects/foo2
 cp -a projects/foo1 projects/foo2
