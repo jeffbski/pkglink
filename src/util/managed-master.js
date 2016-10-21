@@ -2,6 +2,9 @@ import cluster from 'cluster';
 import Readline from 'readline';
 import R from 'ramda';
 
+// child process is killed if doesn't shutdown in this time
+const STOP_TIMEOUT = 10000; // 10s
+
 export default function runAsMaster(INTERRUPT_TYPE) {
   const win32 = process.platform === 'win32';
   let readline;
@@ -23,25 +26,28 @@ export default function runAsMaster(INTERRUPT_TYPE) {
   function launchChildWorker(script, opts) {
     const options = R.merge({
       exec: script,
-      stopTimeout: 10000 // 10s
+      stopTimeout: STOP_TIMEOUT
     }, opts);
     cluster.setupMaster(options);
     const worker = cluster.fork();
 
     let killTimeout = null;
 
-    process
-      .once('SIGINT', () => {
-        // for windows compatibility
-        worker.send({ type: INTERRUPT_TYPE });
+    const cancel = R.once(() => {
+      // for windows compatibility
+      worker.send({ type: INTERRUPT_TYPE });
 
-        // failsafe timer, kills child if doesn't shutdown
-        killTimeout = setTimeout(() => {
-          console.log('killing child');
-          worker.kill('SIGTERM');
-          killTimeout = null;
-        }, options.stopTimeout);
-      });
+      // failsafe timer, kills child if doesn't shutdown
+      killTimeout = setTimeout(() => {
+        console.log('killing child');
+        worker.kill('SIGTERM');
+        killTimeout = null;
+      }, options.stopTimeout);
+    });
+
+    process
+      .once('SIGINT', cancel)
+      .once('SIGTERM', cancel);
 
     worker.on('exit', code => {
       process.exitCode = code;

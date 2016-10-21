@@ -2,12 +2,13 @@ import R from 'ramda';
 
 export default function runAsChild(INTERRUPT_TYPE) {
   const onInterrupt = fn => { // set the onInterrupt fn to call
-    const onceFn = R.once(fn);
+    const interruptOnce = R.once(fn);
     process
-      .once('SIGINT', onceFn)
+      .once('SIGINT', interruptOnce)
+      .once('SIGTERM', interruptOnce)
       .on('message', msg => {
         if (msg && msg.type === INTERRUPT_TYPE) {
-          onceFn();
+          interruptOnce();
         }
       });
   };

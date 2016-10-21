@@ -8,7 +8,8 @@ const masterDir = 'foo1';
 
 const rootDirs = [
   'foo2',
-  'foo3'
+  'foo3',
+  'foo4'
 ];
 
 const filesLinked = [

@@ -3,7 +3,10 @@
   "version": "0.0.1",
   "description": "",
   "main": "build-lib/index.js",
-  "bin": "bin/pkglink.js",
+  "bin": {
+    "pkglink": "bin/pkglink.js",
+    "pkglink_low": "build-lib/cli.js"
+  },
   "scripts": {
     "clean": "mkdirp build-lib && rimraf build-lib/*",
     "build": "cross-env BABEL_ENV=commonjs babel -q src --out-dir build-lib",
@@ -15,7 +18,8 @@
     "prod-build": "npm run build --production",
     "start": "npm run watch",
     "test": "run-s test:*",
-    "test:cli-basic": "cd fixtures && bash cli-test-basic.bash",
+    "test:cli-basic-direct": "cd fixtures && bash cli-test-basic.bash \"../bin/pkglink.js\"",
+    "test:cli-basic-node": "cd fixtures && bash cli-test-basic.bash \"node ../bin/pkglink.js\"",
     "test:mocha": "cross-env BABEL_ENV=test mocha --compilers js:babel-register \"src/**/*.mocha.js*\"",
     "watch": "run-p -c watch:*",
     "watch:babel": "npm run build -- -w",

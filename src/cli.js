@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import chalk from 'chalk';
 import fs from 'fs-extra-promise';
 import numeral from 'numeral';
@@ -103,6 +104,7 @@ const finalTasks = R.once(() => {
 
 managed.onInterrupt(cancel); // fires on SIGINT
 process
+  .once('SIGTERM', cancel)
   .once('EXIT', finalTasks);
 
 out(''); // advance to full line

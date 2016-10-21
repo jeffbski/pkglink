@@ -38,6 +38,12 @@ Standard Options:
 
   Show this message
 
+ -m, --memory MEMORY_MB
+
+  Run with increased or decreased memory specified in MB, overrides
+  environment variable PKGLINK_NODE_OPTIONS and config.memory
+  The default memory used is 2560.
+
  -p, --prune
 
   Prune the refs file by checking all of the refs clearing out any
@@ -52,3 +58,7 @@ Standard Options:
 
   Maximum depth to search the directories specified for node modules
   Default depth: 0 (unlimited)
+
+ -v, --verbose
+
+  Output additional information helpful for debugging

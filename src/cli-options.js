@@ -8,16 +8,18 @@ import { safeJsonReadSync } from './util/file';
 import { DEFAULT_CONFIG_FILE, DEFAULT_REFS_FILE } from './constants';
 
 const minimistOpts = {
-  boolean: ['d', 'g', 'h', 'p'],
-  string: ['c', 'r'],
+  boolean: ['d', 'g', 'h', 'p', 'v'],
+  string: ['c', 'm', 'r'],
   alias: {
     c: 'config',
     d: 'dryrun',
     g: 'gen-ln-cmds',
     h: 'help',
+    m: 'memory',
     p: 'prune',
     r: 'refs-file',
-    t: 'tree-depth'
+    t: 'tree-depth',
+    v: 'verbose'
   }
 };
 
@@ -69,9 +71,10 @@ export function gatherConfig(argv, unvalidatedConfig, configPath) {
   const config = configResult.value; // with defaults applied
   R.toPairs({ // for these defined argv values override config
     dryrun: argv.dryrun,
-              genLnCmds: argv['gen-ln-cmds'],
-              refsFile: argv['refs-file'],
-              treeDepth: argv['tree-depth']
+    genLnCmds: argv['gen-ln-cmds'],
+    memory: argv.memory,
+    refsFile: argv['refs-file'],
+    treeDepth: argv['tree-depth']
   }).forEach(p => {
     const k = p[0];
     const v = p[1];
