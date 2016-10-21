@@ -10,11 +10,12 @@
     "lint": "eslint --ext .js --ext .jsx src",
     "prebuild": "npm run clean",
     "postbuild": "echo \"Finished\"",
-    "prepublish": "npm run prod-build",
+    "prepublish": "run-s lint test prod-build",
     "prewatch": "npm run clean",
     "prod-build": "npm run build --production",
     "start": "npm run watch",
-    "test": "npm run test:mocha",
+    "test": "run-s test:*",
+    "test:cli-basic": "cd fixtures && bash cli-test-basic.bash",
     "test:mocha": "cross-env BABEL_ENV=test mocha --compilers js:babel-register \"src/**/*.mocha.js*\"",
     "watch": "run-p -c watch:*",
     "watch:babel": "npm run build -- -w",
@@ -31,7 +32,6 @@
     "minimist": "^1.2.0",
     "numeral": "^1.5.3",
     "ramda": "^0.22.1",
-    "read-package-tree": "^5.1.5",
     "readdirp": "^2.1.0",
     "rxjs": "^5.0.0-rc.1",
     "single-line-log": "^1.1.2",
@@ -72,7 +72,7 @@
     "expect": "^1.20.2",
     "mkdirp": "^0.5.1",
     "mocha": "^2.3.3",
-    "npm-run-all": "^3.1.0",
+    "npm-run-all": "^3.1.1",
     "rimraf": "^2.4.1"
   }
 }

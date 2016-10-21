@@ -1,2 +1,4 @@
 /src/
 /build-lib/**/*.mocha.js
+/build-lib/**/*.mocha.man.js
+/fixtures/
