@@ -1,5 +1,5 @@
 #!/bin/sh
-':' //; export MAX_MEM="--max-old-space-size=2048"; exec "$(command -v node || command -v nodejs)" "${NODE_OPTIONS:-$MAX_MEM}" "$0" "$@"
+':' //; export MAX_MEM="--max-old-space-size=2560"; exec "$(command -v node || command -v nodejs)" "${NODE_OPTIONS:-$MAX_MEM}" "$0" "$@"
 
 var OS = require('os');
 var Path = require('path');
@@ -23,7 +23,7 @@ var CONFIG_PATH = argv.config ||
 var parsedConfigJson = FSUtils.safeJsonReadSync(CONFIG_PATH);
 var DESIRED_MEM = (parsedConfigJson && parsedConfigJson.memory) ?
                   parsedConfigJson.memory :
-                  2048; // MB
+                  2560; // MB  - should match option in 2nd line
 var hasExtraMemory = (DESIRED_MEM < freeMemoryMB);
 var memoryArg = '--max-old-space-size=' + DESIRED_MEM;
 var options = {
