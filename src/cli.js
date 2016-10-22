@@ -107,6 +107,11 @@ process
   .once('SIGTERM', cancel)
   .once('EXIT', finalTasks);
 
+if (argv.verbose) {
+  console.log('argv', argv);
+  console.log('config', config);
+}
+
 out(''); // advance to full line
 
 // Main program start, create task$ and run
