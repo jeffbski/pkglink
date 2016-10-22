@@ -39,10 +39,12 @@ grep "pkgs: 84 saved: 3" output.log
 
 cross-env BABEL_ENV=test mocha --compilers js:babel-register ../src/cli.compare-foo.mocha.man.js
 
-# delete some node_modules and prune
+# REFS should contain foo2, delete foo2, prune, REFS no foo2
+grep "projects/foo2/node_modules" REFS.json
 rimraf projects/foo2/node_modules
 ${PKGLINK_EXEC} -vpr REFS.json -p | tee output.log
 grep "updated REFS.json" output.log
+grep --invert-match "projects/foo2/node_modules" REFS.json
 
 rimraf projects/foo2
 rimraf projects/foo3
