@@ -8,11 +8,19 @@ import { createLogUpdate } from './util/log';
 
 /*
  Default hard link function which unlinks orig dst then creates link
+ If failed to link (maybe fs doesn't support), recopy from src
  @return promise that resolves on success or rejects on failure
  */
 function hardLink(src, dst) {
   return fs.unlinkAsync(dst)
-           .then(() => fs.linkAsync(src, dst));
+           .then(() => fs.linkAsync(src, dst))
+           .catch(err => {
+             fs.copyAsync(src, dst, {
+               clobber: false,
+               preserveTimestamps: true
+             });
+             throw err; // rethrow original
+           });
 }
 
 export function genModuleLinks(config, rtenv, lnkModSrcDst) { // returns observable
