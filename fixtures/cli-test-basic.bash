@@ -44,7 +44,7 @@ grep "projects/foo2/node_modules" REFS.json
 rimraf projects/foo2/node_modules
 ${PKGLINK_EXEC} -vpr REFS.json -p | tee output.log
 grep "updated REFS.json" output.log
-grep --invert-match "projects/foo2/node_modules" REFS.json
+# TODO add test to check that foo2 no longer in the REFS.json
 
 rimraf projects/foo2
 rimraf projects/foo3
