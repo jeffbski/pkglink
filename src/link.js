@@ -18,8 +18,14 @@ function hardLink(src, dst) {
              fs.copyAsync(src, dst, {
                clobber: false,
                preserveTimestamps: true
+             })
+             .then(() => {
+               console.error('INFO: recopied %s to %s to cleanup from link error which follows', src, dst);
+             })
+             .catch(err => {
+               console.error('ERROR: was not able to restore %s after link error that follows, reinstall package', dst);
              });
-             throw err; // rethrow original
+             throw err; // rethrow original err
            });
 }
 
@@ -120,7 +126,7 @@ function performLink(config, rtenv, [src, dst, size]) {  // returns observable
   return Observable.fromPromise(
       link(src, dst)
         .catch(err => {
-          console.error(`failed to unlink/link src:${src} dst:${dst}`, err);
+          console.error(`ERROR: failed to unlink/link src:${src} dst:${dst}`, err);
           throw err;
         })
   );
