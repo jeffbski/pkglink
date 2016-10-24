@@ -6,6 +6,7 @@
   "extends": ["airbnb-base"],
   "rules": {
     "arrow-body-style": [1, "as-needed"],
+    "arrow-parens": 1,
     "camelcase": 0,
     // don't require dangling commas
     "comma-dangle": 0,
