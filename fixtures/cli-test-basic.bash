@@ -5,6 +5,14 @@ PKGLINK_EXEC="$1"
 set -e
 set -x
 
+unamestr=$(uname)
+
+# windows is not piping child procs so skip child-proc test
+if [[ "$PKGLINK_EXEC" == "node ../bin/pkglink.js" && $unamestr =~ _NT ]] ; then
+    echo "skipping child proc test on windows due to piping issue"
+    exit 0
+fi
+
 # cwd should be here in fixtures
 rimraf REFS.json
 rimraf projects/foo2
@@ -47,22 +55,27 @@ grep "pkgs: 84 saved: 3.68MB" output.log
 # different modified time excluded
 rimraf projects/cat1
 cp -a projects/foo1 projects/cat1
-touch projects/cat1/node_modules/expect/lib/Expectation.js
-${PKGLINK_EXEC} -vr REFS.json -d projects | tee output.log
-grep "# pkgs: 105 would save: 3.87MB" output.log
-${PKGLINK_EXEC} -vr REFS.json -g projects | tee output.log
-grep "# pkgs: 105 would save: 3.87MB" output.log
-${PKGLINK_EXEC} -vr REFS.json projects | tee output.log
-grep "pkgs: 105 saved: 3.87MB" output.log
+if [[ "$unamestr" =~ _NT ]] ; then  # windows can't do modtime
+  ${PKGLINK_EXEC} -vr REFS.json projects | tee output.log
+  grep "pkgs: 105 saved: 3.88MB" output.log
+else # non-windows, test modtime excluded
+  touch projects/cat1/node_modules/expect/lib/Expectation.js
+  ${PKGLINK_EXEC} -vr REFS.json -d projects | tee output.log
+  grep "# pkgs: 105 would save: 3.87MB" output.log
+  ${PKGLINK_EXEC} -vr REFS.json -g projects | tee output.log
+  grep "# pkgs: 105 would save: 3.87MB" output.log
+  ${PKGLINK_EXEC} -vr REFS.json projects | tee output.log
+  grep "pkgs: 105 saved: 3.87MB" output.log
+fi
 
 cross-env BABEL_ENV=test mocha --compilers js:babel-register ../src/cli.compare-foo.mocha.man.js
 
 # REFS should contain foo2, delete foo2, prune, REFS no foo2
-grep "projects/foo2/node_modules" REFS.json
+grep "foo2" REFS.json
 rimraf projects/foo2/node_modules
 ${PKGLINK_EXEC} -vpr REFS.json -p | tee output.log
 grep "updated REFS.json" output.log
-grep -L "projects/foo2/node_modules" REFS.json | grep REFS.json
+grep -L "foo2" REFS.json | grep REFS.json
 
 rimraf projects/foo2
 rimraf projects/foo3
