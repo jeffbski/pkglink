@@ -14,9 +14,9 @@ export default function linkFilter(config, dstPackInode, x) {
    (x.srcEI.stat.dev === x.dstEI.stat.dev) &&
    // same size
    (x.srcEI.stat.size === x.dstEI.stat.size) &&
-   // same modified datetime
-   (x.srcEI.stat.mtime.getTime() ===
-     x.dstEI.stat.mtime.getTime()) &&
+   // ignoreModTime or is same modified datetime
+   (config.ignoreModTime || (x.srcEI.stat.mtime.getTime() ===
+     x.dstEI.stat.mtime.getTime())) &&
    // big enough to care about
    (x.dstEI.stat.size >= config.minFileSize)
   );

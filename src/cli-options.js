@@ -34,6 +34,10 @@ export const configSchema = Joi.object({
   refsFile: Joi.string().default(
     Path.resolve(OS.homedir(), DEFAULT_REFS_FILE)),
   concurrentOps: Joi.number().integer().min(1).default(4),
+  // windows does not maintain original modtimes for installs
+  // so ignoreModTime is defaulted to true for win32
+  ignoreModTime: Joi.boolean()
+                    .default(OS.platform() === 'win32'),
   memory: Joi.number().integer().min(100).default(2048), // MB
   minFileSize: Joi.number().integer().min(0).default(0), // bytes
   treeDepth: Joi.number().integer().min(0).default(0),
