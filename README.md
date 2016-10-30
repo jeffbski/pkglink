@@ -4,6 +4,8 @@ Space saving Node.js package hard linker.
 
 pkglink locates common packages and hard links the JavaScript and Node.js package files in your node_modules directories so they share the disk space.
 
+[![Build Status](https://secure.travis-ci.org/jeffbski/pkglink.png?branch=master)](http://travis-ci.org/jeffbski/pkglink)
+
 ## Why?
 
 As an instructor, I create lots of JavaScript and Node.js projects and many of them use the same packages. **However due to the way packages are installed they all take up their own disk space.** It would be nice to have a way for the installations of the same package to **share disk space**.
