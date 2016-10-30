@@ -26,7 +26,7 @@ Before running any tool that can modify your file system it is always a good ide
 
 Hard linking will not work on FAT and ReFS file systems. Hard links can only be made between files on the same device (drive). pkglink has been tested on Mac OS X (hpfs), Ubuntu (ext3), and Windows (NTFS).
 
-If you had to recover from an unforseen defect in pkglink, the recovery process is to simply delete your project's node_modules directory and perform npm install again.
+If you had to recover from an unforeseen defect in pkglink, the recovery process is to simply delete your project's node_modules directory and perform npm install again.
 
 
 ## Installation
@@ -182,9 +182,9 @@ To be considered for linking the following criteria are checked:
  - file size is >= to config.minFileSize (defaults to 0)
  - directories starting with a `.` and all their descendents are ignored
 
-## Recovering from an forseen problem
+## Recovering from an unforeseen problem
 
-If you need to recover from a problem the standard way is to simply delete your project's node_modules directory and run `npm install` again.
+If you need to recover from a problem the standard way is to simply delete your project's `node_modules` directory and run `npm install` again.
 
 If you get an out of memory error while running you can increase the memory using a command line option, environment variable, or the config file. If your operating system doesn't have 2.5GB memory to launch pkglink you can use the low memory version, run `pkglink_low` instead and it will run with reduced memory.
 
