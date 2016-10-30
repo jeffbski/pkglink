@@ -143,7 +143,7 @@ The default config file path is `~/.pkglink` unless you override it with the `--
 
 ## How do I know it is working?
 
-Well if you check your disk space before and after a run it should be at least as much savings as pkglink indicates during a run. pkglink indicates the file size, but the actual savings can be greater due to the block of the disk.
+Well if you check your disk space before and after a run it should be at least as much savings as pkglink indicates during a run. pkglink indicates the file size saved, but the actual savings can be greater due to the block size of the disk.
 
 On systems with a working bash, you can also use `ls -ali node_modules/XYZ` to see the number of hard links a file has (meaning the number of times it is shared) and the action inode values of files.
 
