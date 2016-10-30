@@ -137,6 +137,32 @@ The default config file path is `~/.pkglink` unless you override it with the `--
  - `refSize` - number of package refs to keep in the refsFile which is used to find matching packages on successive runs, default: 5
  - `tree-depth` - the maximum depth to search the directories for packages, default: 0 (unlimited). Can also be overridden with `--tree-depth` command line option.
 
+## How do I know it is working?
+
+Well if you check your disk space before and after a run it should be at least as much savings as pkglink indicates during a run. pkglink indicates the file size, but the actual savings can be greater due to the block of the disk.
+
+On systems with a working bash, you can also use `ls -ali node_modules/XYZ` to see the number of hard links a file has (meaning the number of times it is shared) and the action inode values of files.
+
+When using the `-i` option with `ls` the first column is the actual inode of the file, so you can verify one directories' files with another. Also the 3rd column is the number of hard links, so you can see that CHANGELOG.md, LICENSE, README.md, and index.js all have 17 hard links.
+
+```bash
+jeffbski-laptop:~/working/expect-test$ ls -ali node_modules/define-properties/
+total 80
+89543426 drwxr-xr-x  13 jeff  staff   442 Oct 22 04:02 .
+89543425 drwxr-xr-x  24 jeff  staff   816 Oct 22 03:58 ..
+89543473 -rw-r--r--   1 jeff  staff   276 Oct 14  2015 .editorconfig
+89543474 -rw-r--r--   1 jeff  staff   156 Oct 14  2015 .eslintrc
+89543475 -rw-r--r--   1 jeff  staff  3062 Oct 14  2015 .jscs.json
+89543476 -rw-r--r--   1 jeff  staff     8 Oct 14  2015 .npmignore
+89543477 -rw-r--r--   1 jeff  staff  1182 Oct 14  2015 .travis.yml
+89212049 -rw-r--r--  17 jeff  staff   972 Oct 14  2015 CHANGELOG.md
+89212004 -rw-r--r--  17 jeff  staff  1080 Oct 14  2015 LICENSE
+89211984 -rw-r--r--  17 jeff  staff  2725 Oct 14  2015 README.md
+89212027 -rw-r--r--  17 jeff  staff  1560 Oct 14  2015 index.js
+89543482 -rw-r--r--   1 jeff  staff  1593 Oct 14  2015 package.json
+89543447 drwxr-xr-x   3 jeff  staff   102 Oct 22 04:02 test
+```
+
 ## What files will it link in the packages
 
 It looks for packages in the node_modules directories of the directory trees that you specify on the command line.
