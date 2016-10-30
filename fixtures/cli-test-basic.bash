@@ -7,12 +7,6 @@ set -x
 
 unamestr=$(uname)
 
-# windows is not piping child procs so skip child-proc test
-if [[ "$PKGLINK_EXEC" == "node ../bin/pkglink.js" && $unamestr =~ _NT ]] ; then
-    echo "skipping child proc test on windows due to piping issue"
-    exit 0
-fi
-
 # cwd should be here in fixtures
 rimraf REFS.json
 rimraf projects/foo2

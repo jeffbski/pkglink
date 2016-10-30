@@ -1,5 +1,4 @@
-#!/bin/sh
-':' //; export MAX_MEM="--max-old-space-size=2560"; exec "$(command -v node || command -v nodejs)" "${PKGLINK_NODE_OPTIONS:-$MAX_MEM}" "$0" "$@"
+#!/usr/bin/env node
 
 var OS = require('os');
 var Path = require('path');
@@ -26,7 +25,7 @@ var CONFIG_PATH = argv.config ||
                   Path.resolve(OS.homedir(), Constants.DEFAULT_CONFIG_FILE);
 var parsedConfigJson = FSUtils.safeJsonReadSync(CONFIG_PATH);
 var configMemory = parsedConfigJson && parsedConfigJson.memory;
-var DESIRED_MEM = configMemory || 2560; // MB  - should match option in 2nd line
+var DESIRED_MEM = configMemory || 2560; // MB
 var hasExtraMemory = (DESIRED_MEM < freeMemoryMB);
 
 // check in order argv.memory, env, config/default for node options
