@@ -13,7 +13,7 @@
     "lint": "eslint --ext .js --ext .jsx src",
     "prebuild": "npm run clean",
     "postbuild": "echo \"Finished\"",
-    "prepublish": "run-s lint test prod-build",
+    "prepublish": "run-s prod-build lint test",
     "prewatch": "npm run clean",
     "pretest": "cd \"fixtures/projects/foo1\" && npm install && cd -",
     "prod-build": "npm run build --production",
