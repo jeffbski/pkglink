@@ -1,6 +1,6 @@
 {
   "name": "pkglink",
-  "version": "0.0.1",
+  "version": "0.7.0",
   "description": "Space saving Node.js package hard linker. Finds common packages and Hard links the JavaScript and Node.js package files in your node_modules directories so they share the disk space.",
   "main": "build-lib/index.js",
   "bin": {
