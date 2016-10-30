@@ -2,7 +2,7 @@
 
 Space saving Node.js package hard linker.
 
-pkglink locates common packages and hard links the JavaScript and Node.js package files in your node_modules directories so they share the disk space.
+pkglink locates common packages and hard links the JavaScript and Node.js package files in your node_modules directories so they share disk space.
 
 [![Build Status](https://secure.travis-ci.org/jeffbski/pkglink.png?branch=master)](http://travis-ci.org/jeffbski/pkglink)
 
@@ -14,7 +14,7 @@ Modern operating systems and disk formats support the concept of **hard links** 
 
 pkglink is a command lind tool that searches directory tree that you specify for packages in your node_modules directories. When it finds matching packages of the same name and version that could share space, it hard links the files. As a safety precaution it checks many file attributes before considering them for linking (see full details later in this doc).
 
-pkglink keeps track of packages it has seen on previous scans so when you run on new directories in the future, it can quickly know where to look for previous package matches. It double checks the previous packages are still the proper version, inode, and modified time before linking, but this prevents having to perform full tree scans any time you add a new project. Simply run pkglink once on your project tree and then again on new projects as you create them.
+pkglink keeps track of packages it has seen on previous scans so when you run on new directories in the future, it can quickly know where to look for previous package matches. It double checks the previous packages are still the proper version, inode, and modified time before linking, but this prevents performing full tree scans any time you add a new project. Simply run pkglink once on your project tree and then again on new projects as you create them.
 
 pkglink has been tested on Ubuntu, Mac OS X, and Windows. Hard links are supported on most modern disk formats with the exception of FAT and ReFS.
 
@@ -24,7 +24,7 @@ The main assumption that enables hard linking is that you are not manually modif
 
 Before running any tool that can modify your file system it is always a good idea to have a current backup and sync code with your repositories.
 
-Hard linking will not work on FAT and ReFS file systems. Hard links can only be made between files on the same device (drive). pkglink has been tested on Mac OS X (hpfs), Ubuntu (ext3), and Windows (NTFS).
+Hard linking will not work on FAT and ReFS file systems. Hard links can only be made between files on the same device (drive). pkglink has been tested on Mac OS X (hpfs), Ubuntu (ext4), and Windows (NTFS).
 
 If you had to recover from an unforeseen defect in pkglink, the recovery process is to simply delete your project's node_modules directory and perform npm install again.
 
@@ -181,6 +181,14 @@ To be considered for linking the following criteria are checked:
  - file modified time is the same (except on Windows which doesn't maintain the original modified times during install)
  - file size is >= to config.minFileSize (defaults to 0)
  - directories starting with a `.` and all their descendents are ignored
+
+## FAQ
+
+Q. Once I use this do I need to do anything special when deleting or updating projects?
+
+No, since pkglink works by using hard links, your operating system will handle things appropriately under the covers. The OS updates the link count when packages are deleted from a particular path. If you update or reinstall then your packages will simply replace those that were there. You could run pkglink on the project again to hard link the new files.
+
+Also while pkglink keeps a list of packages it has found in its refs file (~/.pkglink_refs), it always double checks packages before using them for linking (and it updates the refs file). You may also run pkglink with the `--prune` option to check all the refs.
 
 ## Recovering from an unforeseen problem
 
