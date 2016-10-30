@@ -26,7 +26,6 @@ const minimistOpts = {
 export const argvSchema = Joi.object({
   config: Joi.string(),
   'refs-file': Joi.string(),
-  size: Joi.number().integer().min(0),
   'tree-depth': Joi.number().integer().min(0)
 }).unknown();
 
@@ -38,7 +37,7 @@ export const configSchema = Joi.object({
   // so ignoreModTime is defaulted to true for win32
   ignoreModTime: Joi.boolean()
                     .default(OS.platform() === 'win32'),
-  memory: Joi.number().integer().min(100).default(2048), // MB
+  memory: Joi.number().integer().min(100).default(2560), // MB
   minFileSize: Joi.number().integer().min(0).default(0), // bytes
   treeDepth: Joi.number().integer().min(0).default(0),
   refSize: Joi.number().integer().min(1).default(5),
@@ -86,6 +85,7 @@ export function gatherConfig(argv, unvalidatedConfig, configPath) {
       config[k] = v;
     }
   });
+  // define how much room is left for displaying paths
   config.extraCols = config.consoleWidth - 30;
   return config;
 }
