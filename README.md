@@ -190,6 +190,10 @@ No, since pkglink works by using hard links, your operating system will handle t
 
 Also while pkglink keeps a list of packages it has found in its refs file (~/.pkglink_refs), it always double checks packages before using them for linking (and it updates the refs file). You may also run pkglink with the `--prune` option to check all the refs.
 
+Q. Can I interrupt pkglink during its run?
+
+Yes, type Control-c once and pkglink will cancel its processing and shutdown. Please allow time for it to gracefully shutdown.
+
 ## Recovering from an unforeseen problem
 
 If you need to recover from a problem the standard way is to simply delete your project's `node_modules` directory and run `npm install` again.
