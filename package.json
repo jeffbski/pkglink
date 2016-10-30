@@ -1,7 +1,7 @@
 {
   "name": "pkglink",
   "version": "0.0.1",
-  "description": "",
+  "description": "Space saving Node.js package hard linker. Finds common packages and Hard links the JavaScript and Node.js package files in your node_modules directories so they share the disk space.",
   "main": "build-lib/index.js",
   "bin": {
     "pkglink": "bin/pkglink.js",
@@ -28,6 +28,16 @@
     "watch:mocha": "npm run test:mocha -- -w"
   },
   "author": "Jeff Barczewski",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/jeffbski/pkglink.git"
+  },
+  "bugs": {
+    "url": "http://github.com/jeffbski/pkglink/issues"
+  },
+  "engines": {
+    "node": ">=4"
+  },
   "license": "MIT",
   "dependencies": {
     "bluebird": "^3.4.6",
@@ -80,5 +90,16 @@
     "mocha": "^3.1.2",
     "npm-run-all": "^3.1.1",
     "rimraf": "^2.4.1"
-  }
+  },
+  "keywords": [
+    "package",
+    "link",
+    "linking",
+    "hard link",
+    "npm",
+    "modules",
+    "sharing",
+    "consolidating",
+    "space"
+  ]
 }
