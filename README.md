@@ -198,7 +198,7 @@ Yes, type Control-c once and pkglink will cancel its processing and shutdown. Pl
 
 If you need to recover from a problem the standard way is to simply delete your project's `node_modules` directory and run `npm install` again.
 
-If you get an out of memory error while running you can increase the memory using a command line option, environment variable, or the config file. If your operating system doesn't have 2.5GB memory to launch pkglink you can use the low memory version, run `pkglink_low` instead and it will run with reduced memory.
+If you get an out of memory error while running pkglink you can increase the memory using a command line option `-m`, environment variable, or the config file. If your operating system doesn't have 2.5GB memory to launch pkglink you can use the low memory version, run `pkglink_low` instead and it will run with reduced memory.
 
 ## License
 
