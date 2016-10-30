@@ -123,6 +123,8 @@ Standard Options:
   Output additional information helpful for debugging
 ```
 
+If your machine has less than 2.5GB of memory you can use `pkglink_low` instead of `pkglink` and it will run with the normal 1.5GB memory default.
+
 ## Config
 
 The default config file path is `~/.pkglink` unless you override it with the `--config` command line option. If this file exists it should be a JSON file with an object having any of the following properties.
