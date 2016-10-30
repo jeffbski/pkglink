@@ -42,9 +42,9 @@ grep "pkgs: 42 saved: 3.88MB" output.log
 # combined projects run picks up projects/bar1 (expect ver different)
 rimraf projects/bar1
 cp -a projects/foo1 projects/bar1
-pushd projects/bar1
+cd projects/bar1
 npm install -S expect@1.20.1 --no-shrinkwrap
-popd
+cd -
 ${PKGLINK_EXEC} -vr REFS.json -d projects | tee output.log
 grep "# pkgs: 84 would save: 3.68MB" output.log
 ${PKGLINK_EXEC} -vr REFS.json -g projects | tee output.log

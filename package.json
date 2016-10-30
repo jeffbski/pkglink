@@ -15,7 +15,7 @@
     "postbuild": "echo \"Finished\"",
     "prepublish": "run-s lint test prod-build",
     "prewatch": "npm run clean",
-    "pretest": "pushd \"fixtures/projects/foo1\" && npm install && popd",
+    "pretest": "cd \"fixtures/projects/foo1\" && npm install && cd -",
     "prod-build": "npm run build --production",
     "start": "npm run watch",
     "test": "run-s test:*",
