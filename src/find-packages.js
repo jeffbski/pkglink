@@ -5,7 +5,8 @@ import readdirp from 'readdirp';
 import { Observable } from 'rxjs';
 import { formatDevNameVersion } from './util/format';
 
-const ENDS_NODE_MOD_RE = /[\\\/]node_modules$/;
+// unix or windows paths
+const ENDS_NODE_MOD_RE = /[\\/]node_modules$/;
 
 /*
    Special directory tree filter for finding node_module/X packages
