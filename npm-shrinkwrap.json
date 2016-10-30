@@ -1,6 +1,6 @@
 {
   "name": "pkglink",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "dependencies": {
     "ansi-regex": {
       "version": "2.0.0",
