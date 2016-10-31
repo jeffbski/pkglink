@@ -28,7 +28,7 @@ After running pkglink on my project directories, **it found 128K packages and sa
 
 ## Assumptions for use
 
-The main assumption that enables hard linking is that you are not manually modifying your packages after install from the registry. This means that installed packages of the same name and version should generally be the same. Additional checks at the file level are used to verify matches (see filter criteria later in this doc) before selecting them for linking.
+The main assumption that enables hard linking is that you are not manually modifying your packages after install from the registry. This means that installed packages of the same name and version should generally be the same. Additional checks at the file level are used to verify matches ([see filter criteria later in this doc](#what-files-will-it-link-in-the-packages)) before selecting them for linking.
 
 Before running any tool that can modify your file system it is always a good idea to have a current backup and sync code with your repositories.
 
