@@ -6,6 +6,8 @@ pkglink locates common packages and hard links the JavaScript and Node.js packag
 
 [![Build Status](https://secure.travis-ci.org/jeffbski/pkglink.png?branch=master)](http://travis-ci.org/jeffbski/pkglink) [![Known Vulnerabilities](https://snyk.io/test/github/jeffbski/pkglink/cb67b52c10073cbd5a7e6cc6798931db779adb97/badge.svg)](https://snyk.io/test/github/jeffbski/pkglink/cb67b52c10073cbd5a7e6cc6798931db779adb97)
 
+<img src="https://cloud.githubusercontent.com/assets/5689/19868149/ccf7ded8-9f74-11e6-808e-247d24e68d27.gif" width="640" height="360" alt="demo" />
+
 ## Why?
 
 As an instructor, I create lots of JavaScript and Node.js projects and many of them use the same packages. **However due to the way packages are installed they all take up their own disk space.** It would be nice to have a way for the installations of the same package to **share disk space**.
@@ -17,6 +19,12 @@ pkglink is a command lind tool that searches directory tree that you specify for
 pkglink keeps track of packages it has seen on previous scans so when you run on new directories in the future, it can quickly know where to look for previous package matches. It double checks the previous packages are still the proper version, inode, and modified time before linking, but this prevents performing full tree scans any time you add a new project. Simply run pkglink once on your project tree and then again on new projects as you create them.
 
 pkglink has been tested on Ubuntu, Mac OS X, and Windows. Hard links are supported on most modern disk formats with the exception of FAT and ReFS.
+
+## How much savings?
+
+It all depends on how many matching packages you have on your system, but you will probably be surprised.
+
+After running pkglink on my project directories, **it found 128K packages and saved over 20GB of disk space**.
 
 ## Assumptions for use
 
@@ -42,6 +50,16 @@ To hard link packages just run pkglink with one or more directory trees that you
 ```bash
 pkglink DIR1 DIR2 ...
 ```
+
+You will get output similar to this:
+
+```
+jeffbski-laptop:~$ pkglink ~/projects ~/working
+
+pkgs: 128,383 saved: 5.11GB
+```
+
+The run above indicated that pkglink found 128K packages and after linking it saved over 5GB of disk space. (Actual savings was higher since I had run pkglink on a portion of the tree previously)
 
 If you wish to see what packages it finds to link you can use the `--dry-run` or `-d` option. pkglink will output matching packages that it would normally link but it will NOT perform any linking.
 
@@ -145,9 +163,9 @@ The default config file path is `~/.pkglink` unless you override it with the `--
 
 Well if you check your disk space before and after a run it should be at least as much savings as pkglink indicates during a run. pkglink indicates the file size saved, but the actual savings can be greater due to the block size of the disk.
 
-On systems with a working bash, you can also use `ls -ali node_modules/XYZ` to see the number of hard links a file has (meaning the number of times it is shared) and the action inode values of files.
+On systems with bash, you can also use `ls -ali node_modules/XYZ` to see the number of hard links a particular file has (which is the number of times it is shared) and the actual inode values.
 
-When using the `-i` option with `ls` the first column is the actual inode of the file, so you can verify one directories' files with another. Also the 3rd column is the number of hard links, so you can see that CHANGELOG.md, LICENSE, README.md, and index.js all have 17 hard links.
+When using the `-i` option with `ls` the first column is the inode of the file, so you can verify one directories' files with another. Also the 3rd column is the number of hard links, so you can see that CHANGELOG.md, LICENSE, README.md, and index.js all have 17 hard links.
 
 ```bash
 jeffbski-laptop:~/working/expect-test$ ls -ali node_modules/define-properties/
@@ -169,36 +187,71 @@ total 80
 
 ## What files will it link in the packages
 
-It looks for packages in the node_modules directories of the directory trees that you specify on the command line.
+pkglink looks for packages in the node_modules directories of the directory trees that you specify as args on the command line.
 
 To be considered for linking the following criteria are checked:
 
  - package name and version from package.json must match
- - package.json is excluded from linking since npm modifies it on install
+ - package.json is excluded from linking since npm often modifies it on install
  - files are on the same device (drive) - hard links only work on same device
  - files are not already the same inode (not already hard linked)
  - file size is the same
- - file modified time is the same (except on Windows which doesn't maintain the original modified times during install)
- - file size is >= to config.minFileSize (defaults to 0)
+ - file modified time is the same (except on Windows which doesn't maintain the original modified times during npm installs)
+ - file size is >= to config.minFileSize (defaults to 0 to include all)
  - directories starting with a `.` and all their descendents are ignored
 
 ## FAQ
 
-Q. Once I use this do I need to do anything special when deleting or updating projects?
+### Q. Once I use this do I need to do anything special when deleting or updating projects?
 
 No, since pkglink works by using hard links, your operating system will handle things appropriately under the covers. The OS updates the link count when packages are deleted from a particular path. If you update or reinstall then your packages will simply replace those that were there. You could run pkglink on the project again to hard link the new files.
 
 Also while pkglink keeps a list of packages it has found in its refs file (~/.pkglink_refs), it always double checks packages before using them for linking (and it updates the refs file). You may also run pkglink with the `--prune` option to check all the refs.
 
-Q. Can I interrupt pkglink during its run?
+### Q. Can I interrupt pkglink during its run?
 
 Yes, type Control-c once and pkglink will cancel its processing and shutdown. Please allow time for it to gracefully shutdown.
+
+### Q. What does the output mean?
+
+```
+jeffbski-laptop:~$ pkglink ~/projects ~/working
+
+pkgs: 128,383 saved: 5.11GB
+```
+
+For this pkglink found 128K packages and after performing linking it saved over 5GB of space. pkglink reports the total of the file size saved, but the actual savings on disk is likely larger due to drive block sizes. Using `df -H` before and after the run, the actual size saved was around 11GB.
+
+Since I had already run pkglink on portions of this tree, this was only the additional savings gained. I had already linked another 8GB previously so my total link savings was closer to 20GB.
+
+If you were to run pkglink again immediately after this previous run it will come back with the same pkg count but the savings reported this time would be 0 since everything had been linked previously.
+
+### Q. What do I do if I get an out of memory error?
+
+If you run pkglink on a really large directory tree, you might get an out of memory error during the run.
+
+The error might look something like:
+
+```
+FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory
+```
+
+You can either run pkglink on smaller portions of the tree at a time or you can allow pkglink to use more memory for its run. You can do this by using the `--memory` or `-m` option or changing the `memory` config option in the ~/.pgklink JSON file.
+
+By default pkglink runs with 2.5GB of memory, so to increase it to 4GB, you could use the following command:
+
+```bash
+pkglink -m 4096 DIR1 DIR2 ...
+```
+
+If you don't even have 2.5GB of memory, you can use the low memory version of pkglink, `pkglink_low DIR1 DIR2 ...` and it will just run with the node.js defaults. Note that you may need to run pkglink_low on smaller portions of the directory tree at a time.
+
 
 ## Recovering from an unforeseen problem
 
 If you need to recover from a problem the standard way is to simply delete your project's `node_modules` directory and run `npm install` again.
 
-If you get an out of memory error while running pkglink you can increase the memory using a command line option `-m`, environment variable, or the config file. If your operating system doesn't have 2.5GB memory to launch pkglink you can use the low memory version, run `pkglink_low` instead and it will run with reduced memory.
+If pkglink exits early, failing to give you the summary output or if you get an out of memory error, see the FAQ above about handling out of memory errors. You can run pkglink on smaller directory trees at a time or increase the memory available to it.
 
 ## License
 
@@ -208,4 +261,4 @@ MIT license
 
 This project was born out of discussions between @kevinold and @jeffbski at Strange Loop 2016.
 
-[CodeWinds Training](https://codewinds.com) sponsored the development of this project. For live in-person or webinar developer training in React, Redux, RxJS, or Node.js contact Jeff at CodeWinds.
+[CodeWinds Training](https://codewinds.com) sponsored the development of this project. CodeWinds offers live in-person or webinar developer training in React, Redux, RxJS, or Node.js.
