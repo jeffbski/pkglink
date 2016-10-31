@@ -45,6 +45,8 @@ npm install -g pkglink
 
 ## Quick start
 
+### To find and hard link matching packages
+
 To hard link packages just run pkglink with one or more directory trees that you wish it to scan and link.
 
 ```bash
@@ -61,7 +63,9 @@ pkgs: 128,383 saved: 5.11GB
 
 The run above indicated that pkglink found 128K packages and after linking it saved over 5GB of disk space. (Actual savings was higher since I had run pkglink on a portion of the tree previously)
 
-If you wish to see what packages it finds to link you can use the `--dry-run` or `-d` option. pkglink will output matching packages that it would normally link but it will NOT perform any linking.
+### Dry-run - just output a list of matching packages
+
+If you wish to see what packages pkglink would link you can use the `--dry-run` or `-d` option. pkglink will output matching packages that it would normally link but it will NOT perform any linking.
 
 ```bash
 pkglink -d DIR1 DIR2 ...
@@ -87,7 +91,9 @@ object-keys-1.0.11
 # pkgs: 21 would save: 3.88MB
 ```
 
-If you want to see exactly what it would be linking down to the file level, you can use the `--gen-ln-cmds` or `-g` option and it will output the equivalent bash commands for the hard links that it would normally create. It will not peform the linking. You can view this for correctness or even save it to a file and excute it with bash besides just running it again wihout the option.
+### Generate link commands only
+
+If you want to see exactly what it would be linking down to the file level, you can use the `--gen-ln-cmds` or `-g` option and it will output the equivalent bash commands for the hard links that it would normally create. It will not peform the linking. You can view this for correctness or even save it to a file and excute it with bash besides just running pkglink again wihout the `-g` option.
 
 ```bash
 pkglink -g DIR1 DIR2 ...
@@ -105,7 +111,7 @@ ln -f "/Users/jeff/projects/pkglink/fixtures/projects/foo1/node_modules/es-abstr
 # pkgs: 21 would save: 3.88MB
 ```
 
-## Usage
+## Full Usage
 
 ```
 Usage: pkglink {OPTIONS} [dir] [dirN]
