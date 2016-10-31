@@ -67,12 +67,43 @@ If you wish to see what packages it finds to link you can use the `--dry-run` or
 pkglink -d DIR1 DIR2 ...
 ```
 
+The `--dry-run` output looks like:
+
+```
+jeffbski-laptop:~$ pkglink -d ~/working/expect-test
+
+tmatch-2.0.1
+  /Users/jeff/projects/pkglink/fixtures/projects/foo1/node_modules/tmatch
+  /Users/jeff/working/expect-test/node_modules/tmatch
+
+object.entries-1.0.3
+  /Users/jeff/projects/pkglink/fixtures/projects/foo1/node_modules/object.entries
+  /Users/jeff/working/expect-test/node_modules/object.entries
+
+object-keys-1.0.11
+  /Users/jeff/projects/pkglink/fixtures/projects/foo1/node_modules/object-keys
+  /Users/jeff/working/expect-test/node_modules/object-keys
+
+# pkgs: 21 would save: 3.88MB
+```
+
 If you want to see exactly what it would be linking down to the file level, you can use the `--gen-ln-cmds` or `-g` option and it will output the equivalent bash commands for the hard links that it would normally create. It will not peform the linking. You can view this for correctness or even save it to a file and excute it with bash besides just running it again wihout the option.
 
 ```bash
 pkglink -g DIR1 DIR2 ...
 ```
 
+The `--gen-ln-cmds` output looks like
+
+```
+jeffbski-laptop:~$ pkglink -g ~/working/expect-test
+
+ln -f "/Users/jeff/projects/pkglink/fixtures/projects/foo1/node_modules/define-properties/index.js" "/Users/jeff/working/expect-test/node_modules/define-properties/index.js"
+ln -f "/Users/jeff/projects/pkglink/fixtures/projects/foo1/node_modules/expect/CHANGES.md" "/Users/jeff/working/expect-test/node_modules/expect/CHANGES.md"
+ln -f "/Users/jeff/projects/pkglink/fixtures/projects/foo1/node_modules/expect/LICENSE.md" "/Users/jeff/working/expect-test/node_modules/expect/LICENSE.md"
+ln -f "/Users/jeff/projects/pkglink/fixtures/projects/foo1/node_modules/es-abstract/Makefile" "/Users/jeff/working/expect-test/node_modules/es-abstract/Makefile"
+# pkgs: 21 would save: 3.88MB
+```
 
 ## Usage
 

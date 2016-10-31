@@ -8,6 +8,14 @@ var managed = require('../build-lib/util/managed').default; // require in either
 var Constants = require('../build-lib/constants');
 var FSUtils = require('../build-lib/util/file');
 
+/*
+  We determine whether we need to run a child process so we can
+  enable a larger memory footprint. util/managed handles all of
+  the details and sets up the signal handlers.
+
+  The main CLI is in cli.js
+ */
+
 var script = Path.join(__dirname, '..', 'build-lib', 'cli.js');
 var freeMemoryMB = Math.floor(OS.freemem() / (1024 * 1024));
 var minimistOpts = {
@@ -63,7 +71,7 @@ if (noOverrideNotEnoughMemory || alreadyHasOptions) {
     console.log('running with reduced memory, free:%sMB desired:%sMB', freeMemoryMB, DESIRED_MEM);
   }
   require(script); // already has options invoke directly
-} else { // need to use child to get right options, most likely win32
+} else { // need to use child to get right options
   if (argv.verbose) {
     console.log('using child process to adjust working memory');
     console.log('execArgv:', options.execArgv);
