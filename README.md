@@ -14,7 +14,7 @@ As an instructor, I create lots of JavaScript and Node.js projects and many of t
 
 Modern operating systems and disk formats support the concept of **hard links** which is a way to have one copy of a file on disk that can be used from multiple paths. Since packages are generally read-only once they are installed, it would save much disk space if we could hard link their files.
 
-pkglink is a command lind tool that searches directory tree that you specify for packages in your node_modules directories. When it finds matching packages of the same name and version that could share space, it hard links the files. As a safety precaution it checks many file attributes before considering them for linking (see full details later in this doc).
+pkglink is a command lind tool that searches directory tree that you specify for packages in your node_modules directories. When it finds matching packages of the same name and version that could share space, it hard links the files. As a safety precaution it checks many file attributes before considering them for linking ([see full details later in this doc](#what-files-will-it-link-in-the-packages)).
 
 pkglink keeps track of packages it has seen on previous scans so when you run on new directories in the future, it can quickly know where to look for previous package matches. It double checks the previous packages are still the proper version, inode, and modified time before linking, but this prevents performing full tree scans any time you add a new project. Simply run pkglink once on your project tree and then again on new projects as you create them.
 
@@ -64,13 +64,13 @@ The run above indicated that pkglink found 128K packages and after linking it sa
 If you wish to see what packages it finds to link you can use the `--dry-run` or `-d` option. pkglink will output matching packages that it would normally link but it will NOT perform any linking.
 
 ```bash
-pkglink --dry-run DIR1 DIR2 ...
+pkglink -d DIR1 DIR2 ...
 ```
 
 If you want to see exactly what it would be linking down to the file level, you can use the `--gen-ln-cmds` or `-g` option and it will output the equivalent bash commands for the hard links that it would normally create. It will not peform the linking. You can view this for correctness or even save it to a file and excute it with bash besides just running it again wihout the option.
 
 ```bash
-pkglink --gen-ln-cmds DIR1 DIR2 ...
+pkglink -g DIR1 DIR2 ...
 ```
 
 
@@ -202,6 +202,10 @@ To be considered for linking the following criteria are checked:
 
 ## FAQ
 
+### Q. Can I run this for a single project?
+
+Yes, pkglink is designed so that you can run it for individual projects or for a whole directory tree. It keeps track of packages it has already seen on previous runs (in its refs file) so it can perform links with those as well as any duplication in your project.
+
 ### Q. Once I use this do I need to do anything special when deleting or updating projects?
 
 No, since pkglink works by using hard links, your operating system will handle things appropriately under the covers. The OS updates the link count when packages are deleted from a particular path. If you update or reinstall then your packages will simply replace those that were there. You could run pkglink on the project again to hard link the new files.
@@ -251,7 +255,7 @@ If you don't even have 2.5GB of memory, you can use the low memory version of pk
 
 If you need to recover from a problem the standard way is to simply delete your project's `node_modules` directory and run `npm install` again.
 
-If pkglink exits early, failing to give you the summary output or if you get an out of memory error, see the FAQ above about handling out of memory errors. You can run pkglink on smaller directory trees at a time or increase the memory available to it.
+If pkglink exits early, failing to give you the summary output or if you get an out of memory error, see the FAQ above about [handling out of memory errors](#q-what-do-i-do-if-i-get-an-out-of-memory-error). You can run pkglink on smaller directory trees at a time or increase the memory available to it.
 
 ## License
 
