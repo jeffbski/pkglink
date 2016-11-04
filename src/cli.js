@@ -96,7 +96,10 @@ const finalTasks = R.once(() => {
       )
     );
     fs.outputJsonSync(config.refsFile, sortedExistingPackRefs);
-    if (argv.prune) { out(`updated ${config.refsFile}`); }
+    // if pruned or if no savings, at least let them know refs updated
+    if (argv.prune || !rtenv.savedByteCount) {
+      out(`updated ${config.refsFile}`);
+    }
   }
   out(`${chalk.blue('pkgs:')} ${numeral(rtenv.packageCount).format('0,0')} ${chalk.green('saved:')} ${chalk.bold(formatBytes(rtenv.savedByteCount))}`);
   managed.shutdown();
