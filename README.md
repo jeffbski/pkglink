@@ -14,7 +14,7 @@ As an instructor, I create lots of JavaScript and Node.js projects and many of t
 
 Modern operating systems and disk formats support the concept of **hard links** which is a way to have one copy of a file on disk that can be used from multiple paths. Since packages are generally read-only once they are installed, it would save much disk space if we could hard link their files.
 
-pkglink is a command lind tool that searches directory tree that you specify for packages in your node_modules directories. When it finds matching packages of the same name and version that could share space, it hard links the files. As a safety precaution it checks many file attributes before considering them for linking ([see full details later in this doc](#what-files-will-it-link-in-the-packages)).
+pkglink is a command line tool that searches directory tree that you specify for packages in your node_modules directories. When it finds matching packages of the same name and version that could share space, it hard links the files. As a safety precaution it checks many file attributes before considering them for linking ([see full details later in this doc](#what-files-will-it-link-in-the-packages)).
 
 pkglink keeps track of packages it has seen on previous scans so when you run on new directories in the future, it can quickly know where to look for previous package matches. It double checks the previous packages are still the proper version, inode, and modified time before linking, but this prevents performing full tree scans any time you add a new project. Simply run pkglink once on your project tree and then again on new projects as you create them.
 
