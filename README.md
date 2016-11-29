@@ -63,15 +63,15 @@ pkgs: 128,383 saved: 5.11GB
 
 The run above indicated that pkglink found 128K packages and after linking it saved over 5GB of disk space. (Actual savings was higher since I had run pkglink on a portion of the tree previously)
 
-### Dry-run - just output a list of matching packages
+### Dryrun - just output a list of matching packages
 
-If you wish to see what packages pkglink would link you can use the `--dry-run` or `-d` option. pkglink will output matching packages that it would normally link but it will NOT perform any linking.
+If you wish to see what packages pkglink would link you can use the `--dryrun` or `-d` option. pkglink will output matching packages that it would normally link but it will NOT perform any linking.
 
 ```bash
 pkglink -d DIR1 DIR2 ...
 ```
 
-The `--dry-run` output looks like:
+The `--dryrun` output looks like:
 
 ```
 jeffbski-laptop:~$ pkglink -d ~/working/expect-test
