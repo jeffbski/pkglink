@@ -40,11 +40,11 @@ cd projects/bar1
 npm install -S expect@1.20.1 --no-shrinkwrap
 cd -
 ${PKGLINK_EXEC} -vr REFS.json -d projects | tee output.log
-grep "# pkgs: 84 would save: 3.68MB" output.log
+grep "# pkgs: 84 would save: 3.67MB" output.log
 ${PKGLINK_EXEC} -vr REFS.json -g projects | tee output.log
-grep "# pkgs: 84 would save: 3.68MB" output.log
+grep "# pkgs: 84 would save: 3.67MB" output.log
 ${PKGLINK_EXEC} -vr REFS.json projects | tee output.log
-grep "pkgs: 84 saved: 3.68MB" output.log
+grep "pkgs: 84 saved: 3.67MB" output.log
 
 # different modified time excluded
 rimraf projects/cat1
