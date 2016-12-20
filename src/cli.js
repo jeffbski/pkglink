@@ -121,16 +121,15 @@ out(''); // advance to full line
 const arrTaskObs = [];
 if (argv.prune) {
   arrTaskObs.push(
-    Observable.of('pruning')
-              .do(() => log(`${chalk.bold('pruning...')}`))
-              .mergeMap(() => prune(config, rtenv.existingPackRefs)
-                .do(newShares => { rtenv.existingPackRefs = newShares; }))
+    Observable.defer(() => {
+      log(`${chalk.bold('pruning...')}`);
+      return prune(config, rtenv.existingPackRefs);
+    }).do(newShares => { rtenv.existingPackRefs = newShares; })
   );
 }
 if (startingDirs.length) {
   arrTaskObs.push(
-    Observable.of('scanning')
-      .mergeMap(() => scanAndLink(config, rtenv, startingDirs))
+    Observable.defer(() => scanAndLink(config, rtenv, startingDirs))
   );
 }
 
