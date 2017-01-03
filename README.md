@@ -302,4 +302,4 @@ MIT license
 
 This project was born out of discussions between @kevinold and @jeffbski at Strange Loop 2016.
 
-[CodeWinds Training](https://codewinds.com) sponsored the development of this project. CodeWinds offers live in-person or webinar developer training in React, Redux, RxJS, or Node.js.
+[CodeWinds Training](https://codewinds.com) sponsored the development of this project.
