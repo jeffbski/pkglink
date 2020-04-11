@@ -19,14 +19,14 @@ const minimistOpts = {
     p: 'prune',
     r: 'refs-file',
     t: 'tree-depth',
-    v: 'verbose',
-  },
+    v: 'verbose'
+  }
 };
 
 export const argvSchema = Joi.object({
   config: Joi.string(),
   'refs-file': Joi.string(),
-  'tree-depth': Joi.number().integer().min(0),
+  'tree-depth': Joi.number().integer().min(0)
 }).unknown(true);
 
 export const configSchema = Joi.object({
@@ -39,7 +39,7 @@ export const configSchema = Joi.object({
   minFileSize: Joi.number().integer().min(0).default(0), // bytes
   treeDepth: Joi.number().integer().min(0).default(0),
   refSize: Joi.number().integer().min(1).default(5),
-  consoleWidth: Joi.number().integer().min(30).default(70),
+  consoleWidth: Joi.number().integer().min(30).default(70)
 });
 
 export function gatherOptions(processArgv, displayHelp) {
@@ -62,7 +62,9 @@ export function gatherOptions(processArgv, displayHelp) {
 }
 
 export function gatherConfig(argv, unvalidatedConfig, configPath) {
-  const configResult = configSchema.validate(unvalidatedConfig, { abortEarly: false });
+  const configResult = configSchema.validate(unvalidatedConfig, {
+    abortEarly: false
+  });
   if (configResult.error) {
     console.error(chalk.red('error: invalid JSON configuration'));
     console.error(`${chalk.bold('config file:')} ${configPath}`);
@@ -78,7 +80,7 @@ export function gatherConfig(argv, unvalidatedConfig, configPath) {
     genLnCmds: argv['gen-ln-cmds'],
     memory: argv.memory,
     refsFile: argv['refs-file'],
-    treeDepth: argv['tree-depth'],
+    treeDepth: argv['tree-depth']
   }).forEach((p) => {
     const k = p[0];
     const v = p[1];
@@ -95,7 +97,8 @@ export function gatherConfig(argv, unvalidatedConfig, configPath) {
 export function gatherOptionsConfig(processArgv, displayHelp) {
   const argv = gatherOptions(processArgv, displayHelp);
 
-  const CONFIG_PATH = argv.config || Path.resolve(OS.homedir(), DEFAULT_CONFIG_FILE);
+  const CONFIG_PATH =
+    argv.config || Path.resolve(OS.homedir(), DEFAULT_CONFIG_FILE);
 
   const parsedConfigJson = safeJsonReadSync(CONFIG_PATH);
   if (parsedConfigJson instanceof Error) {
@@ -110,6 +113,6 @@ export function gatherOptionsConfig(processArgv, displayHelp) {
 
   return {
     argv,
-    config,
+    config
   };
 }
