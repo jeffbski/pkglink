@@ -66,7 +66,7 @@ else # non-windows, test modtime excluded
   grep "pkgs: 185 saved: 1.61MB" output.log
 fi
 
-cross-env BABEL_ENV=test mocha --compilers js:babel-register ../src/cli.compare-foo.mocha.man.js
+cross-env BABEL_ENV=test mocha --require babel-register ../src/cli.compare-foo.mocha.man.js
 
 # REFS should contain foo2, delete foo2, prune, REFS no foo2
 grep "foo2" REFS.json
