@@ -1,6 +1,7 @@
 import fs from 'fs-extra-promise';
 
-export function safeJsonReadSync(file) { // returns obj, error, or undefined when not found
+export function safeJsonReadSync(file) {
+  // returns obj, error, or undefined when not found
   try {
     const stat = fs.statSync(file);
     if (stat && stat.size) {

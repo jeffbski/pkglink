@@ -2,7 +2,7 @@ import fs from 'fs-extra-promise';
 import Path from 'path';
 import Prom from 'bluebird';
 import R from 'ramda';
-import { Observable, Scheduler } from 'rxjs';
+import { Observable } from 'rxjs';
 import { formatDevNameVersion } from './util/format';
 
 export function prune(config, dnvPR) {
@@ -60,7 +60,7 @@ export function verifyPackRef(dnv, packRef, returnEI = false) {
               ? {
                   // masterEI
                   stat: packStat,
-                  fullParentDir: modDir,
+                  fullParentDir: modDir
                 }
               : packRef;
           }
@@ -115,7 +115,7 @@ export function determinePackLinkSrcDst(config, rtenv, destEIdn) {
       srcPackMTimeEpoch: masterEI.stat.mtime.getTime(),
       dst: dstEI.fullParentDir,
       dstPackInode: dstEI.stat.ino,
-      dstPackMTimeEpoch: dstEI.stat.mtime.getTime(),
+      dstPackMTimeEpoch: dstEI.stat.mtime.getTime()
     }));
 }
 

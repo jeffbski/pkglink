@@ -37,21 +37,14 @@ describe('link-filter', () => {
   describe('missing targets', () => {
     it('should exclude', () => {
       const x = { srcEI: masterEI };
-      expect(
-        linkFilter(config, dstPackInode, x)
-      ).toNotExist();
+      expect(linkFilter(config, dstPackInode, x)).toNotExist();
     });
   });
 
   describe('non-package.json', () => {
     it('should exclude', () => {
-      const x = R.set(
-        R.lensPath(['dstEI', 'stat', 'ino']),
-        dstPackInode,
-        {});
-      expect(
-        linkFilter(config, dstPackInode, x)
-      ).toNotExist();
+      const x = R.set(R.lensPath(['dstEI', 'stat', 'ino']), dstPackInode, {});
+      expect(linkFilter(config, dstPackInode, x)).toNotExist();
     });
   });
 
@@ -61,9 +54,7 @@ describe('link-filter', () => {
         R.assoc('srcEI', masterEI),
         R.assoc('dstEI', linked1)
       )({});
-      expect(
-        linkFilter(config, dstPackInode, x)
-      ).toNotExist();
+      expect(linkFilter(config, dstPackInode, x)).toNotExist();
     });
   });
 
@@ -71,12 +62,9 @@ describe('link-filter', () => {
     it('should exclude', () => {
       const x = R.compose(
         R.assoc('srcEI', masterEI),
-        R.assoc('dstEI',
-                R.assocPath(['stat', 'dev'], 'def', linked1))
+        R.assoc('dstEI', R.assocPath(['stat', 'dev'], 'def', linked1))
       )({});
-      expect(
-        linkFilter(config, dstPackInode, x)
-      ).toNotExist();
+      expect(linkFilter(config, dstPackInode, x)).toNotExist();
     });
   });
 
@@ -84,12 +72,9 @@ describe('link-filter', () => {
     it('should exclude', () => {
       const x = R.compose(
         R.assoc('srcEI', masterEI),
-        R.assoc('dstEI',
-                R.assocPath(['stat', 'size'], 999, match1))
+        R.assoc('dstEI', R.assocPath(['stat', 'size'], 999, match1))
       )({});
-      expect(
-        linkFilter(config, dstPackInode, x)
-      ).toNotExist();
+      expect(linkFilter(config, dstPackInode, x)).toNotExist();
     });
   });
 
@@ -97,12 +82,9 @@ describe('link-filter', () => {
     it('should exclude', () => {
       const x = R.compose(
         R.assoc('srcEI', masterEI),
-        R.assoc('dstEI',
-                R.assocPath(['stat', 'mtime'], new Date(100), match1))
+        R.assoc('dstEI', R.assocPath(['stat', 'mtime'], new Date(100), match1))
       )({});
-      expect(
-        linkFilter(config, dstPackInode, x)
-      ).toNotExist();
+      expect(linkFilter(config, dstPackInode, x)).toNotExist();
     });
   });
 
@@ -113,9 +95,7 @@ describe('link-filter', () => {
         R.assoc('srcEI', masterEI),
         R.assoc('dstEI', match1)
       )({});
-      expect(
-        linkFilter(config2, dstPackInode, x)
-      ).toNotExist();
+      expect(linkFilter(config2, dstPackInode, x)).toNotExist();
     });
   });
 
@@ -125,10 +105,7 @@ describe('link-filter', () => {
         R.assoc('srcEI', masterEI),
         R.assoc('dstEI', match1)
       )({});
-      expect(
-        linkFilter(config, dstPackInode, x)
-      ).toExist();
+      expect(linkFilter(config, dstPackInode, x)).toExist();
     });
   });
-
 });

@@ -10,9 +10,9 @@ const presets = [
       useBuiltIns: 'usage',
       corejs: '3.6.4',
       modules: BABEL_ENV === 'es' ? false : 'auto', // not transforming modules for es
-      debug: CI, // show the browser target and plugins used when in CI mode
-    },
-  ],
+      debug: CI // show the browser target and plugins used when in CI mode
+    }
+  ]
 ];
 
 const plugins = [];
@@ -23,5 +23,5 @@ const env = {};
 module.exports = {
   env,
   plugins,
-  presets,
+  presets
 };

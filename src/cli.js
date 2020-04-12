@@ -18,17 +18,21 @@ import { gatherOptionsConfig } from './cli-options';
 const isTTY = process.stdout.isTTY; // truthy if in terminal
 const singleLineLog = SingleLineLog.stderr;
 
-const rtenv = { // create our copy
+const rtenv = {
+  // create our copy
   ...defaultRTEnv
 };
 
-const { argv, config } = gatherOptionsConfig(process.argv.slice(2),
-                                             displayHelp);
+const { argv, config } = gatherOptionsConfig(
+  process.argv.slice(2),
+  displayHelp
+);
 
 // should we be using terminal output
 const isTermOut = isTTY && !argv['gen-ln-cmds'];
 
-if (argv.help || (!argv._.length && !argv.prune)) { // display help
+if (argv.help || (!argv._.length && !argv.prune)) {
+  // display help
   displayHelp();
   process.exit(23);
 }
@@ -39,22 +43,22 @@ function displayHelp() {
 
 fs.ensureFileSync(config.refsFile);
 
-const startingDirs = argv._.map(x => Path.resolve(x));
+const startingDirs = argv._.map((x) => Path.resolve(x));
 
 // key=nameVersion value: array of ref tuples [modPath, packJsonInode, packJsonMTimeEpoch]
-rtenv.existingPackRefs = fs.readJsonSync(config.refsFile, { throws: false }) || {};
-
+rtenv.existingPackRefs =
+  fs.readJsonSync(config.refsFile, { throws: false }) || {};
 
 rtenv.cancelled$ = new ReplaySubject(1);
 
 const singleLineLog$ = new Subject();
 singleLineLog$
-  .filter(x => isTermOut) // only if in terminal
+  .filter((x) => isTermOut) // only if in terminal
   .distinctUntilChanged()
   .throttleTime(100)
   .takeUntil(rtenv.cancelled$)
   .subscribe({
-    next: x => singleLineLog(x),
+    next: (x) => singleLineLog(x),
     complete: () => {
       singleLineLog('');
       singleLineLog.clear();
@@ -70,7 +74,7 @@ log.clear = () => {
 rtenv.log = log; // share this logger in the rtenv
 
 function out(str) {
-  const s = (isTermOut) ? str : stripAnsi(str);
+  const s = isTermOut ? str : stripAnsi(str);
   process.stdout.write(s);
   process.stdout.write(OS.EOL);
 }
@@ -84,16 +88,19 @@ const cancel = R.once(() => {
 const finalTasks = R.once(() => {
   singleLineLog$.complete();
   if (argv.dryrun || argv['gen-ln-cmds']) {
-    out(`# ${chalk.blue('pkgs:')} ${numeral(rtenv.packageCount).format('0,0')} ${chalk.yellow('would save:')} ${chalk.bold(formatBytes(rtenv.savedByteCount))}`);
+    out(
+      `# ${chalk.blue('pkgs:')} ${numeral(rtenv.packageCount).format(
+        '0,0'
+      )} ${chalk.yellow('would save:')} ${chalk.bold(
+        formatBytes(rtenv.savedByteCount)
+      )}`
+    );
     managed.shutdown();
     return;
   }
   if (argv.prune || Object.keys(rtenv.updatedPackRefs).length) {
     const sortedExistingPackRefs = sortObjKeys(
-      R.merge(
-        rtenv.existingPackRefs,
-        rtenv.updatedPackRefs
-      )
+      R.merge(rtenv.existingPackRefs, rtenv.updatedPackRefs)
     );
     fs.outputJsonSync(config.refsFile, sortedExistingPackRefs);
     // if pruned or if no savings, at least let them know refs updated
@@ -101,14 +108,18 @@ const finalTasks = R.once(() => {
       out(`updated ${config.refsFile}`);
     }
   }
-  out(`${chalk.blue('pkgs:')} ${numeral(rtenv.packageCount).format('0,0')} ${chalk.green('saved:')} ${chalk.bold(formatBytes(rtenv.savedByteCount))}`);
+  out(
+    `${chalk.blue('pkgs:')} ${numeral(rtenv.packageCount).format(
+      '0,0'
+    )} ${chalk.green('saved:')} ${chalk.bold(
+      formatBytes(rtenv.savedByteCount)
+    )}`
+  );
   managed.shutdown();
 });
 
 managed.onInterrupt(cancel); // fires on SIGINT
-process
-  .once('SIGTERM', cancel)
-  .once('EXIT', finalTasks);
+process.once('SIGTERM', cancel).once('EXIT', finalTasks);
 
 if (argv.verbose) {
   console.log('argv', argv);
@@ -124,7 +135,9 @@ if (argv.prune) {
     Observable.defer(() => {
       log(`${chalk.bold('pruning...')}`);
       return prune(config, rtenv.existingPackRefs);
-    }).do(newShares => { rtenv.existingPackRefs = newShares; })
+    }).do((newShares) => {
+      rtenv.existingPackRefs = newShares;
+    })
   );
 }
 if (startingDirs.length) {
@@ -135,9 +148,8 @@ if (startingDirs.length) {
 
 // run all the task observables serially
 if (arrTaskObs.length) {
-  Observable.concat(...arrTaskObs)
-            .subscribe({
-              error: err => console.error(err),
-              complete: () => finalTasks()
-            });
+  Observable.concat(...arrTaskObs).subscribe({
+    error: (err) => console.error(err),
+    complete: () => finalTasks()
+  });
 }

@@ -6,12 +6,11 @@ import { Observable } from 'rxjs';
   log.clear, and out are no-ops, will likely be overridden
  */
 
-function noop() { }
+function noop() {}
 
 // placeholder, can be overridden
-function noopLog(str) { }
+function noopLog(str) {}
 noopLog.clear = noop;
-
 
 const rtenv = {
   cancelled: false,
@@ -26,6 +25,5 @@ const rtenv = {
   packageCount: 0,
   savedByteCount: 0
 };
-
 
 export default rtenv;

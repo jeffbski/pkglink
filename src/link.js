@@ -18,12 +18,12 @@ function hardLink(src, dst) {
     .catch((err) => {
       fs.copyAsync(src, dst, {
         clobber: false,
-        preserveTimestamps: true,
+        preserveTimestamps: true
       })
         .then(() => {
           console.error('INFO: recopied %s to %s to cleanup from link error which follows', src, dst);
         })
-        .catch((err) => {
+        .catch((/* err */) => {
           console.error('ERROR: was not able to restore %s after link error that follows, reinstall package', dst);
         });
       throw err; // rethrow original err
@@ -81,7 +81,7 @@ export function determineLinks(config, rtenv, lnkModSrcDst, updatePackRefs = fal
     entryType: 'files',
     lstat: true, // want actual files not symlinked
     fileFilter: ['!.*'],
-    directoryFilter: ['!.*', '!node_modules'],
+    directoryFilter: ['!.*', '!node_modules']
   });
   fstream.once('end', () => {
     rtenv.completedPackages += 1;
@@ -103,7 +103,7 @@ export function determineLinks(config, rtenv, lnkModSrcDst, updatePackRefs = fal
               .statAsync(dstPath)
               .then((stat) => ({
                 fullPath: dstPath,
-                stat,
+                stat
               }))
               .catch((err) => {
                 if (err.code !== 'ENOENT') {
@@ -115,7 +115,7 @@ export function determineLinks(config, rtenv, lnkModSrcDst, updatePackRefs = fal
         },
         (srcEI, dstEI) => ({
           srcEI,
-          dstEI,
+          dstEI
         }),
         config.concurrentOps
       )
@@ -124,7 +124,7 @@ export function determineLinks(config, rtenv, lnkModSrcDst, updatePackRefs = fal
         // s_d_sz
         x.srcEI.fullPath,
         x.dstEI.fullPath,
-        x.srcEI.stat.size,
+        x.srcEI.stat.size
       ])
   );
 }

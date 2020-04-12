@@ -20,14 +20,19 @@ export default function runAsMaster(INTERRUPT_TYPE) {
   }
 
   const shutdown = R.once(() => {
-    if (readline) { readline.close(); }
+    if (readline) {
+      readline.close();
+    }
   });
 
   function launchChildWorker(script, opts) {
-    const options = R.merge({
-      exec: script,
-      stopTimeout: STOP_TIMEOUT
-    }, opts);
+    const options = R.merge(
+      {
+        exec: script,
+        stopTimeout: STOP_TIMEOUT
+      },
+      opts
+    );
     cluster.setupMaster(options);
     const worker = cluster.fork();
 
@@ -45,11 +50,9 @@ export default function runAsMaster(INTERRUPT_TYPE) {
       }, options.stopTimeout);
     });
 
-    process
-      .once('SIGINT', cancel)
-      .once('SIGTERM', cancel);
+    process.once('SIGINT', cancel).once('SIGTERM', cancel);
 
-    worker.on('exit', code => {
+    worker.on('exit', (code) => {
       process.exitCode = code;
       if (killTimeout) {
         try {
@@ -74,5 +77,4 @@ export default function runAsMaster(INTERRUPT_TYPE) {
     onInterrupt,
     shutdown
   };
-
 }

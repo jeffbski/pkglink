@@ -36,7 +36,6 @@ Hard linking will not work on FAT and ReFS file systems. Hard links can only be 
 
 If you had to recover from an unforeseen defect in pkglink, the recovery process is to simply delete your project's node_modules directory and perform npm install again.
 
-
 ## Installation
 
 ```bash
@@ -186,15 +185,15 @@ If your machine has less than 2.5GB of memory you can use `pkglink_low` instead 
 
 The default config file path is `~/.pkglink` unless you override it with the `--config` command line option. If this file exists it should be a JSON file with an object having any of the following properties.
 
- - `refsFile` - location of the JSON file used to track the last 5 references to each package it finds, default: `~/.pkglink_refs`. This can also be overridden with the `--refs-file` command line argument.
+- `refsFile` - location of the JSON file used to track the last 5 references to each package it finds, default: `~/.pkglink_refs`. This can also be overridden with the `--refs-file` command line argument.
 
- - `concurrentOps` - the number of concurrent operations allowed for IO operations, default: 4
- - `consoleWidth` - the number of columns in your console, default: 70
- - `ignoreModTime` - ignore the modification time of the files, default is true on Windows, otherwise false
- - `memory` - adjust the memory used in MB, default: 2560 (2.5GB). Can also be overridden by setting environment variable PKGLINK_NODE_OPTIONS=--max-old-space-size=1234 or by using the command line argument `--memory`.
- - `minFileSize` - the minimum size file to consider for linking in bytes, default: 0
- - `refSize` - number of package refs to keep in the refsFile which is used to find matching packages on successive runs, default: 5
- - `tree-depth` - the maximum depth to search the directories for packages, default: 0 (unlimited). Can also be overridden with `--tree-depth` command line option.
+- `concurrentOps` - the number of concurrent operations allowed for IO operations, default: 4
+- `consoleWidth` - the number of columns in your console, default: 70
+- `ignoreModTime` - ignore the modification time of the files, default is true on Windows, otherwise false
+- `memory` - adjust the memory used in MB, default: 2560 (2.5GB). Can also be overridden by setting environment variable PKGLINK_NODE_OPTIONS=--max-old-space-size=1234 or by using the command line argument `--memory`.
+- `minFileSize` - the minimum size file to consider for linking in bytes, default: 0
+- `refSize` - number of package refs to keep in the refsFile which is used to find matching packages on successive runs, default: 5
+- `tree-depth` - the maximum depth to search the directories for packages, default: 0 (unlimited). Can also be overridden with `--tree-depth` command line option.
 
 ## How do I know it is working?
 
@@ -228,14 +227,14 @@ pkglink looks for packages in the node_modules directories of the directory tree
 
 To be considered for linking the following criteria are checked:
 
- - package name and version from package.json must match
- - package.json is excluded from linking since npm often modifies it on install
- - files are on the same device (drive) - hard links only work on same device
- - files are not already the same inode (not already hard linked)
- - file size is the same
- - file modified time is the same (except on Windows which doesn't maintain the original modified times during npm installs)
- - file size is >= to config.minFileSize (defaults to 0 to include all)
- - directories starting with a `.` and all their descendents are ignored
+- package name and version from package.json must match
+- package.json is excluded from linking since npm often modifies it on install
+- files are on the same device (drive) - hard links only work on same device
+- files are not already the same inode (not already hard linked)
+- file size is the same
+- file modified time is the same (except on Windows which doesn't maintain the original modified times during npm installs)
+- file size is >= to config.minFileSize (defaults to 0 to include all)
+- directories starting with a `.` and all their descendents are ignored
 
 ## FAQ
 
@@ -286,7 +285,6 @@ pkglink -m 4096 DIR1 DIR2 ...
 ```
 
 If you don't even have 2.5GB of memory, you can use the low memory version of pkglink, `pkglink_low DIR1 DIR2 ...` and it will just run with the node.js defaults. Note that you may need to run pkglink_low on smaller portions of the directory tree at a time.
-
 
 ## Recovering from an unforeseen problem
 

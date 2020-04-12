@@ -12,11 +12,11 @@ export function formatDevNameVersion(dev, name, version) {
 
 export function sortObjKeys(obj) {
   return Object.keys(obj)
-               .sort()
-               .reduce((acc, k) => {
-                 acc[k] = obj[k];
-                 return acc;
-               }, {});
+    .sort()
+    .reduce((acc, k) => {
+      acc[k] = obj[k];
+      return acc;
+    }, {});
 }
 
 export function trunc(size, str) {

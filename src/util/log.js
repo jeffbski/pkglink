@@ -1,6 +1,5 @@
 import chalk from 'chalk';
 import numeral from 'numeral';
-import R from 'ramda';
 import { Subject } from 'rxjs';
 import { formatBytes, trunc } from './format';
 
@@ -8,11 +7,17 @@ import { formatBytes, trunc } from './format';
 export function createLogUpdate(config, rtenv) {
   // throttle logging of scan updates
   const logUpdate$ = new Subject();
-  const linkSaved = (config.dryrun) ? 'saves:' : 'saved:';
+  const linkSaved = config.dryrun ? 'saves:' : 'saved:';
   logUpdate$
     .throttleTime(100) // throttle scan updates 100ms each
     .subscribe(() => {
-      rtenv.log(`${chalk.blue('pkgs:')} ${numeral(rtenv.completedPackages).format('0,0')}/${numeral(rtenv.packageCount).format('0,0')} ${chalk.green(linkSaved)} ${chalk.bold(formatBytes(rtenv.savedByteCount))} ${chalk.dim(trunc(config.extraCols, rtenv.currentPackageDir))}`);
+      rtenv.log(
+        `${chalk.blue('pkgs:')} ${numeral(rtenv.completedPackages).format('0,0')}/${numeral(rtenv.packageCount).format(
+          '0,0'
+        )} ${chalk.green(linkSaved)} ${chalk.bold(formatBytes(rtenv.savedByteCount))} ${chalk.dim(
+          trunc(config.extraCols, rtenv.currentPackageDir)
+        )}`
+      );
     });
 
   return function logUpdate() {

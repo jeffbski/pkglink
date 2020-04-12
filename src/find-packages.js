@@ -44,7 +44,7 @@ export default function findPackages(config, rtenv, rootDirs, logUpdate) {
           entryType: 'files',
           lstat: true, // want actual files not symlinked
           fileFilter: ['package.json'],
-          directoryFilter: filterDirsNodeModPacks,
+          directoryFilter: filterDirsNodeModPacks
         };
         if (config.treeDepth) {
           readdirpOptions.depth = config.treeDepth;
@@ -60,12 +60,15 @@ export default function findPackages(config, rtenv, rootDirs, logUpdate) {
       .filter((ei) => ENDS_NODE_MOD_RE.test(Path.dirname(ei.fullParentDir)))
       // get name and version from package.json
       .mergeMap(
-        (ei) => Observable.from(fs.readJsonAsync(ei.fullPath, { throws: false })),
+        (ei) =>
+          Observable.from(fs.readJsonAsync(ei.fullPath, { throws: false })),
         (ei, pack) => ({
           // returns eiDN
           entryInfo: truncEI(ei),
           devNameVer:
-            pack && pack.name && pack.version ? formatDevNameVersion(ei.stat.dev, pack.name, pack.version) : null,
+            pack && pack.name && pack.version
+              ? formatDevNameVersion(ei.stat.dev, pack.name, pack.version)
+              : null
         }),
         config.concurrentOps
       )
