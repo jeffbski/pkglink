@@ -13,7 +13,7 @@
     "lint": "eslint --ext .js --ext .jsx src",
     "prebuild": "npm run clean",
     "postbuild": "echo \"Finished\"",
-    "prepublish": "run-s prod-build lint test",
+    "prepublish": "npm run snyk-protect && run-s prod-build lint test",
     "prewatch": "npm run clean",
     "pretest": "cd \"fixtures/projects/foo1\" && npm ci && cd -",
     "prod-build": "npm run build --production",
@@ -24,7 +24,8 @@
     "test:mocha": "cross-env BABEL_ENV=test mocha --require @babel/register \"src/**/*.mocha.js*\"",
     "watch": "run-p -c watch:*",
     "watch:babel": "npm run build -- -w",
-    "watch:mocha": "npm run test:mocha -- -w"
+    "watch:mocha": "npm run test:mocha -- -w",
+    "snyk-protect": "snyk protect"
   },
   "author": "Jeff Barczewski",
   "repository": {
@@ -52,7 +53,8 @@
     "readdirp": "^2.1.0",
     "rxjs": "^5.0.0-rc.1",
     "single-line-log": "^1.1.2",
-    "strip-ansi": "^3.0.1"
+    "strip-ansi": "^3.0.1",
+    "snyk": "^1.316.2"
   },
   "devDependencies": {
     "@babel/cli": "^7.8.4",
@@ -85,5 +87,6 @@
     "sharing",
     "consolidating",
     "space"
-  ]
+  ],
+  "snyk": true
 }
